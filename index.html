@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eli Grogan's Adventure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --panel: #14121f; --panel2: #1f1b30; --edge: #e8c070; --edge2: #6a5530; --text: #f4ecd8; --dim: #a89f8a;
+    --hp: #e04848; --ap: #48d870; --xp: #ffe066; --pink: #ff4fd8; --cyan: #7af8ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0a12; color: var(--text); font-family: 'VT323', monospace; font-size: 20px; user-select: none; }
+  canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; image-rendering: pixelated; image-rendering: crisp-edges; cursor: crosshair; transition: filter .25s; }
+  body.bark canvas#game { filter: sepia(.6) hue-rotate(60deg) saturate(1.6) contrast(1.1); }
+  body.bark::after { content: 'B.A.R.K. TIME'; position: fixed; top: 90px; left: 50%; transform: translateX(-50%); font-family: 'Press Start 2P'; font-size: 14px; color: #9aff9a; text-shadow: 2px 2px #000; animation: blink 1s infinite; pointer-events: none; }
+  @keyframes blink { 50% { opacity: .4; } }
+  .hidden { display: none !important; }
+  .px { font-family: 'Press Start 2P', monospace; }
+  button { font-family: 'VT323', monospace; font-size: 20px; cursor: pointer; }
+  .box { background: var(--panel); border: 3px solid var(--edge); box-shadow: 0 0 0 3px #000, 4px 4px 0 3px rgba(0,0,0,.5); }
+
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; pointer-events: none; }
+  #stats { position: absolute; top: 12px; left: 12px; display: flex; gap: 10px; padding: 8px 10px; }
+  #portrait-mini { width: 48px; height: 48px; background: #2a2440; border: 2px solid var(--edge2); overflow: hidden; }
+  #portrait-mini canvas { image-rendering: pixelated; width: 48px; height: 48px; }
+  .bars { width: 220px; display: flex; flex-direction: column; gap: 3px; }
+  .bar { position: relative; height: 16px; background: #000; border: 2px solid #000; }
+  .bar .fill { height: 100%; transition: width .15s; }
+  .bar span { position: absolute; inset: 0; font-size: 16px; line-height: 13px; padding-left: 4px; text-shadow: 1px 1px #000; }
+  #hpfill { background: linear-gradient(#ff7070, var(--hp) 50%, #a02828); }
+  #apfill { background: linear-gradient(#80ff9a, var(--ap) 50%, #208a40); }
+  .xpbar { height: 6px; background: #000; } #xpfill { height: 100%; background: var(--xp); }
+  .row1 { display: flex; justify-content: space-between; font-size: 18px; }
+  #lvl { color: var(--xp); } #bucks { color: #ffd23a; }
+  #lvlup { color: #000; background: var(--xp); font-family: 'Press Start 2P'; font-size: 9px; padding: 3px 5px; animation: blink .8s infinite; align-self: flex-start; }
+
+  #mmwrap { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; align-items: center; }
+  #minimap { width: 180px; height: 180px; filter: drop-shadow(3px 3px 0 #000); }
+  #locname { margin-top: 4px; padding: 2px 10px; background: rgba(20,18,31,.85); border: 2px solid var(--edge2); font-size: 18px; max-width: 220px; text-align: center; }
+
+  #tracker { position: absolute; left: 12px; bottom: 12px; width: 340px; padding: 8px 12px; font-size: 18px; line-height: 1.1; background: rgba(20,18,31,.85); border: 2px solid var(--edge2); }
+  #tracker .qname { color: var(--edge); font-family: 'Press Start 2P'; font-size: 10px; margin-bottom: 5px; }
+  .small { color: var(--dim); font-size: 15px; margin-top: 4px; }
+
+  #weapons { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+  .wslot { display: flex; align-items: center; gap: 8px; padding: 5px 10px 5px 6px; background: rgba(20,18,31,.9); border: 2px solid var(--edge2); min-width: 170px; }
+  .wslot img { width: 36px; height: 36px; image-rendering: pixelated; background: #2a2440; border: 1px solid #000; }
+  .wslot b { display: block; font-weight: normal; color: var(--text); font-size: 18px; }
+  .wslot span { color: var(--dim); font-size: 15px; }
+  #abilities { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-size: 17px; }
+  #abilities span { background: rgba(20,18,31,.85); padding: 1px 8px; border: 2px solid var(--edge2); }
+  #abilities span.cd { color: #777; } #abilities span.on { color: #9aff9a; border-color: #9aff9a; }
+
+  #prompt { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); padding: 6px 14px; background: rgba(20,18,31,.92); border: 2px solid var(--edge); font-size: 20px; pointer-events: none; }
+  #toasts { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; z-index: 30; }
+  .toast { padding: 4px 14px; background: rgba(20,18,31,.92); border: 2px solid var(--edge2); font-size: 19px; transition: opacity .5s, transform .5s; text-align: center; max-width: 70vw; }
+  .toast.quest { border-color: var(--edge); color: #ffe9a8; }
+  .toast.level { border-color: var(--xp); color: var(--xp); font-family: 'Press Start 2P'; font-size: 11px; padding: 8px 14px; }
+  .toast.warn { border-color: #a04040; color: #ffb0b0; }
+  .toast.money { color: #ffd23a; }
+  .toast.out { opacity: 0; transform: translateY(-10px); }
+  #floaters { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
+  .floater { position: absolute; left: 0; top: 0; font-family: 'Press Start 2P'; font-size: 11px; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000; white-space: nowrap; }
+  .floater.big { font-size: 15px; }
+  .npclabel { position: absolute; left: 0; top: 0; font-size: 17px; color: #bfe6ff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; white-space: nowrap; }
+  #qarrow { position: fixed; left: 0; top: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; z-index: 4; }
+  #qarrow .arr { width: 0; height: 0; border-left: 18px solid #ffe066; border-top: 10px solid transparent; border-bottom: 10px solid transparent; filter: drop-shadow(2px 2px 0 #000); }
+  #qarrow .dist { font-size: 16px; color: #ffe066; text-shadow: 1px 1px #000; }
+  #qpin { position: fixed; left: 0; top: 0; pointer-events: none; color: #ffe066; font-size: 26px; text-shadow: 2px 2px 0 #000; z-index: 4; font-family: 'Press Start 2P'; }
+  #discover { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); text-align: center; font-family: 'Press Start 2P'; font-size: 20px; color: #ffe9a8; text-shadow: 3px 3px 0 #000; opacity: 0; pointer-events: none; }
+  #discover .small { font-size: 10px; color: var(--edge); margin-bottom: 8px; }
+  #discover.show { animation: disc 3.2s ease forwards; }
+  @keyframes disc { 0% { opacity: 0; letter-spacing: 8px; } 15% { opacity: 1; letter-spacing: 1px; } 80% { opacity: 1; } 100% { opacity: 0; } }
+  #flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s; z-index: 6; }
+  #fader { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .4s; z-index: 50; }
+  #fader.on { opacity: 1; }
+  #bossbar { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); width: max(240px, min(560px, calc(100vw - 600px))); text-align: center; z-index: 10; pointer-events: none; }
+  #bossbar .bn { font-family: 'Press Start 2P'; font-size: 12px; color: var(--pink); text-shadow: 2px 2px #000; margin-bottom: 4px; }
+  #bossbar .bb { height: 18px; background: #000; border: 3px solid var(--pink); }
+  #bossfill { height: 100%; background: linear-gradient(90deg, var(--pink), var(--cyan)); transition: width .2s; }
+  #bossstate { font-size: 17px; margin-top: 3px; text-shadow: 1px 1px #000; }
+  #bossstate.sh { color: #ffb0f0; } #bossstate.vul { color: #9aff9a; }
+
+  /* ---------- Dialogue ---------- */
+  #dialogue { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(980px, 96vw); display: flex; gap: 14px; padding: 14px; z-index: 20; }
+  #dportrait { flex: 0 0 auto; width: 128px; height: 128px; background: radial-gradient(#3a3060, #1a1630); border: 3px solid var(--edge2); display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+  #dportrait canvas { image-rendering: pixelated; }
+  .dmain { flex: 1; min-width: 0; }
+  #dname { font-family: 'Press Start 2P'; font-size: 13px; color: var(--edge); margin-bottom: 4px; }
+  #diq { font-size: 17px; color: var(--dim); margin-bottom: 8px; } #diq b { color: var(--cyan); font-weight: normal; } #diq span { color: #7a7268; }
+  #dtext { font-size: 22px; line-height: 1.15; min-height: 80px; white-space: pre-wrap; }
+  #dchoices { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; }
+  .choice { text-align: left; background: transparent; color: var(--text); border: 0; padding: 3px 8px; font-size: 21px; border-left: 3px solid transparent; }
+  .choice:hover { background: var(--panel2); border-left-color: var(--edge); color: #fff; }
+  .choice .num { color: var(--edge); }
+  .choice .pass { color: #7aff8a; } .choice .fail { color: #ff7a7a; }
+
+  /* ---------- Menus ---------- */
+  #menu { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(980px, 96vw); height: min(640px, 92vh); display: flex; flex-direction: column; z-index: 20; }
+  .mhead { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-bottom: 3px solid var(--edge2); }
+  .mtitle { font-family: 'Press Start 2P'; font-size: 14px; color: var(--edge); flex: 0 0 auto; }
+  .mtabs { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+  .tab, .subtab { background: var(--panel2); color: var(--dim); border: 2px solid var(--edge2); padding: 2px 10px; }
+  .tab.active, .subtab.active { color: #000; background: var(--edge); }
+  .subtab.glow { box-shadow: 0 0 0 2px var(--xp); }
+  .tab small { opacity: .7; }
+  .mclose { margin-left: auto; background: #a03030; color: #fff; border: 2px solid #000; width: 34px; height: 30px; }
+  .mbody { flex: 1; overflow: auto; padding: 12px 16px; }
+  .mbody::-webkit-scrollbar { width: 10px; } .mbody::-webkit-scrollbar-thumb { background: var(--edge2); }
+  .subtabs { display: flex; gap: 6px; margin-bottom: 10px; }
+  .charwrap { display: flex; gap: 18px; }
+  .charleft { flex: 0 0 170px; text-align: center; }
+  .charleft canvas { image-rendering: pixelated; background: radial-gradient(#3a3060, #1a1630); border: 3px solid var(--edge2); }
+  .cname { font-family: 'Press Start 2P'; font-size: 11px; color: var(--edge); margin: 8px 0; }
+  .cstat { text-align: left; font-size: 18px; line-height: 1.2; color: var(--dim); }
+  .charright { flex: 1; min-width: 0; }
+  .hint { color: var(--xp); margin-bottom: 8px; }
+  .srow { display: flex; align-items: center; gap: 10px; padding: 5px 6px; border-bottom: 1px solid #2a2540; }
+  .srow .sk { font-family: 'Press Start 2P'; font-size: 11px; color: var(--edge); width: 40px; }
+  .srow .sn { flex: 1; font-size: 20px; } .srow .sn small { display: block; color: var(--dim); font-size: 16px; line-height: 1; }
+  .pips { color: var(--edge); letter-spacing: -2px; font-size: 16px; } .pips span { color: #3a3450; }
+  .srow .bar { width: 120px; height: 12px; } .srow .bar div { height: 100%; background: var(--edge); }
+  .srow .sv { width: 34px; text-align: right; font-size: 22px; }
+  .plus { width: 30px; height: 28px; background: var(--edge); color: #000; border: 2px solid #000; font-size: 22px; line-height: 18px; }
+  .plus:disabled { opacity: .3; cursor: default; }
+  .prow { position: relative; padding: 6px 90px 6px 8px; border-bottom: 1px solid #2a2540; }
+  .prow b { font-weight: normal; font-size: 21px; } .prow small { display: block; color: var(--dim); font-size: 17px; }
+  .prow.owned b { color: #7aff8a; } .prow.locked { opacity: .45; } .prow.avail b { color: var(--xp); }
+  .prow .tag { font-size: 14px; color: var(--dim); border: 1px solid; padding: 0 4px; }
+  .prow .take { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: var(--xp); border: 2px solid #000; padding: 2px 12px; }
+  .invwrap { display: flex; gap: 16px; height: 100%; }
+  .invlist { flex: 1; overflow: auto; }
+  .ghead { font-family: 'Press Start 2P'; font-size: 10px; color: var(--edge); margin: 10px 0 4px; }
+  .irow { display: flex; align-items: center; gap: 8px; padding: 2px 6px; cursor: pointer; border: 2px solid transparent; }
+  .irow img { width: 28px; height: 28px; image-rendering: pixelated; }
+  .irow:hover { background: var(--panel2); } .irow.sel { border-color: var(--edge); background: var(--panel2); }
+  .irow em { margin-left: auto; font-style: normal; color: #000; background: var(--edge); padding: 0 6px; font-size: 15px; }
+  .invdet { flex: 0 0 300px; padding: 10px; background: var(--panel2); border: 2px solid var(--edge2); }
+  .bigicon { width: 96px; height: 96px; image-rendering: pixelated; display: block; margin: 0 auto 8px; }
+  .dname2 { font-family: 'Press Start 2P'; font-size: 11px; color: var(--edge); text-align: center; margin-bottom: 8px; }
+  .dstats { color: var(--xp); margin-bottom: 6px; } .ddesc { color: var(--text); line-height: 1.1; margin-bottom: 10px; } .dbucks { color: #ffd23a; margin-top: 12px; }
+  .btn { background: var(--edge); color: #000; border: 2px solid #000; padding: 4px 14px; box-shadow: 2px 2px 0 #000; }
+  .btn:disabled { background: #555; color: #999; cursor: default; }
+  .btn:hover:not(:disabled) { background: #ffe9a8; }
+  .btn.big { display: block; width: 320px; margin: 10px auto; padding: 10px; font-size: 22px; }
+  .qwrap .qrow { padding: 8px 10px; margin-bottom: 6px; background: var(--panel2); border: 2px solid transparent; cursor: pointer; line-height: 1.1; }
+  .qrow b { font-weight: normal; color: var(--edge); font-size: 21px; } .qrow small { color: var(--dim); }
+  .qrow.tracked { border-color: var(--xp); } .qrow.done { opacity: .6; cursor: default; } .qrow.done b { color: #7aff8a; }
+  .qrow.rumour { color: var(--dim); cursor: default; }
+  .shopbody { display: flex; gap: 16px; } .shopcol { flex: 1; }
+  .shopbucks { color: #ffd23a; flex: 1; }
+  .srowshop { display: flex; align-items: center; gap: 10px; padding: 6px; border-bottom: 1px solid #2a2540; }
+  .srowshop img { width: 32px; height: 32px; image-rendering: pixelated; }
+  .srowshop div { flex: 1; } .srowshop b { font-weight: normal; } .srowshop small { display: block; color: var(--dim); font-size: 16px; line-height: 1; }
+  .pausebody { display: flex; flex-direction: column; justify-content: center; }
+
+  #mapview { position: fixed; inset: 0; background: rgba(5,5,10,.85); display: flex; align-items: center; justify-content: center; z-index: 25; }
+  #fullmap { border: 3px solid var(--edge); box-shadow: 0 0 0 3px #000; }
+
+  /* ---------- Full screens ---------- */
+  .screen { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 16px; }
+  #title { background: radial-gradient(ellipse at center, rgba(10,8,20,.35), rgba(10,8,20,.9)); }
+  .tlogo { font-family: 'Press Start 2P'; font-size: clamp(22px, 5vw, 56px); line-height: 1.3; color: #ffe066; text-shadow: 4px 4px 0 #b4413a, 8px 8px 0 #000; }
+  .tsub { font-size: 26px; color: #fff; margin: 14px 0 24px; text-shadow: 2px 2px #000; max-width: 700px; }
+  .tchars { display: flex; gap: 40px; align-items: flex-end; margin-bottom: 18px; }
+  .tchars canvas { image-rendering: pixelated; filter: drop-shadow(4px 4px 0 #000); }
+  .vs { font-family: 'Press Start 2P'; color: var(--pink); font-size: 22px; margin-bottom: 60px; text-shadow: 3px 3px #000; }
+  .tbtns { display: flex; flex-direction: column; gap: 4px; }
+  .tfoot { position: absolute; bottom: 12px; color: var(--dim); font-size: 16px; }
+  #creation, #intro, #death, #ending, #controls { background: rgba(8,6,16,.94); }
+  .cpanel { width: min(900px, 96vw); max-height: 94vh; overflow: auto; padding: 18px 22px; text-align: left; }
+  .cpanel h2 { font-family: 'Press Start 2P'; font-size: 16px; color: var(--edge); margin: 0 0 10px; text-align: center; }
+  .crewrap { display: flex; gap: 18px; align-items: flex-start; }
+  .crewrap canvas { image-rendering: pixelated; background: radial-gradient(#3a3060, #1a1630); border: 3px solid var(--edge2); }
+  #cre-stats { flex: 1; }
+  .ptsleft { text-align: center; font-size: 22px; margin-bottom: 8px; } .ptsleft b { color: var(--xp); font-size: 28px; }
+  .story { font-size: 23px; line-height: 1.25; }
+  .story p { margin: 0 0 12px; }
+  .story em { color: var(--pink); font-style: normal; } .story strong { color: var(--edge); font-weight: normal; }
+  .center { text-align: center; margin-top: 14px; }
+  .ctable { display: grid; grid-template-columns: 170px 1fr; gap: 3px 14px; font-size: 21px; }
+  .ctable div:nth-child(odd) { color: var(--edge); }
+  .deadtxt { font-family: 'Press Start 2P'; font-size: clamp(22px, 4vw, 44px); color: #ff5050; text-shadow: 4px 4px #000; margin-bottom: 16px; }
+  .eline { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; font-size: 20px; line-height: 1.1; }
+  .eline canvas { image-rendering: pixelated; flex: 0 0 auto; background: #2a2440; border: 2px solid var(--edge2); }
+  .eline b { color: var(--edge); font-weight: normal; }
+  #ending-fate { color: var(--pink); margin: 12px 0; font-size: 21px; } #ending-stats { color: var(--dim); }
+
+  @media (max-width: 760px) {
+    #tracker { width: 220px; font-size: 15px; } #weapons { display: none; } #minimap { width: 120px; height: 120px; } .bars { width: 140px; }
+    .charwrap, .invwrap, .crewrap, .shopbody { flex-direction: column; } .invdet { flex: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="stats" class="box">
+    <div id="portrait-mini"></div>
+    <div class="bars">
+      <div class="row1"><span id="lvl">LVL 1</span><span id="lvlup" class="hidden">LEVEL UP [C]</span><span id="bucks">$0</span></div>
+      <div class="bar"><div class="fill" id="hpfill"></div><span id="hptext"></span></div>
+      <div class="bar"><div class="fill" id="apfill"></div><span id="aptext"></span></div>
+      <div class="xpbar"><div id="xpfill"></div></div>
+    </div>
+  </div>
+  <div id="mmwrap"><canvas id="minimap" width="180" height="180"></canvas><div id="locname"></div></div>
+  <div id="tracker"></div>
+  <div id="weapons"><div class="wslot" id="wmelee"></div><div class="wslot" id="wranged"></div></div>
+  <div id="abilities"></div>
+</div>
+<div id="floaters"></div>
+<div id="qarrow" class="hidden"><div class="arr"></div><div class="dist"></div></div>
+<div id="qpin" class="hidden">▼</div>
+<div id="prompt" class="hidden"></div>
+<div id="toasts"></div>
+<div id="discover"></div>
+<div id="flash"></div>
+<div id="fader"></div>
+<div id="bossbar" class="hidden"><div class="bn">SHIVE, THE HYPERPOP WIZARD</div><div class="bb"><div id="bossfill"></div></div><div id="bossstate"></div></div>
+
+<div id="dialogue" class="box hidden">
+  <div id="dportrait"></div>
+  <div class="dmain"><div id="dname"></div><div id="diq"></div><div id="dtext"></div><div id="dchoices"></div></div>
+</div>
+<div id="menu" class="box hidden"></div>
+<div id="mapview" class="hidden"><canvas id="fullmap"></canvas></div>
+
+<!-- Title -->
+<div id="title" class="screen hidden">
+  <div class="tchars"><div id="title-eli"></div><div class="vs">VS</div><div id="title-shive"></div></div>
+  <div class="tlogo">ELI GROGAN'S<br>ADVENTURE</div>
+  <div class="tsub">The evil wizard Shive stole Eli's dog costume. Hunt him down across Lake Norman and get it back.</div>
+  <div class="tbtns">
+    <button class="btn big" id="btn-continue">CONTINUE</button>
+    <button class="btn big" id="btn-new">NEW GAME</button>
+    <button class="btn big" id="btn-controls">CONTROLS</button>
+  </div>
+  <div class="tfoot">Lake Norman, North Carolina · A pixel-art RPG</div>
+</div>
+
+<!-- Character creation -->
+<div id="creation" class="screen hidden">
+  <div class="cpanel box">
+    <h2>ELI GROGAN · S.P.E.C.I.A.L.</h2>
+    <div class="ptsleft">Points left: <b id="cre-pts">7</b></div>
+    <div class="crewrap"><div id="cre-portrait"></div><div id="cre-stats"></div></div>
+    <div class="center"><button class="btn big" id="cre-go">LET'S GO!</button></div>
+  </div>
+</div>
+
+<!-- Intro story -->
+<div id="intro" class="screen hidden">
+  <div class="cpanel box story">
+    <h2>ALDERSPRINGS LANE · LAKE NORMAN, NC</h2>
+    <p><strong>Eli Grogan</strong> loves three things: <strong>Agar.io</strong>, <strong>Roblox</strong>, and dressing up as a <strong>dog</strong>.</p>
+    <p>But this morning, Eli woke up to find his beloved dog costume... <em>GONE</em>. In its place: a single glittery business card that read <em>"SHIVE: HYPERPOP LEGEND. FUTURE DOG."</em></p>
+    <p>Shive, the cocky hyperpop wizard, has been stealing every dog costume around Lake Norman. He dreams of becoming a <em>real dog</em>, and his goons, dressed in dog costumes of their own, now roam the lake.</p>
+    <p>Eli is <strong>angry</strong>. With help from his friends, he's going to hunt Shive down and take back what's his.</p>
+    <div class="center"><button class="btn big" id="intro-go">BEGIN</button></div>
+  </div>
+</div>
+
+<!-- Controls -->
+<div id="controls" class="screen hidden">
+  <div class="cpanel box">
+    <h2>CONTROLS</h2>
+    <div class="ctable">
+      <div>W A S D</div><div>Move (isometric)</div>
+      <div>Mouse</div><div>Aim</div>
+      <div>Left Click</div><div>Melee attack</div>
+      <div>Right Click</div><div>Ranged attack (uses AP)</div>
+      <div>Space</div><div>Dodge roll (invincible while rolling)</div>
+      <div>E</div><div>Talk / Interact</div>
+      <div>Q</div><div>B.A.R.K. Time: slow motion, drains AP</div>
+      <div>H</div><div>Quick heal</div>
+      <div>F / G</div><div>Mega Bark (perk) / Dog Whistle (item)</div>
+      <div>1 - 9, Wheel</div><div>Swap weapons</div>
+      <div>C · I · J · M</div><div>Stats &amp; perks · Inventory · Quests · Map</div>
+      <div>1 - 9 in talks</div><div>Pick a dialogue option</div>
+      <div>N</div><div>Toggle music</div>
+      <div>Esc / F5</div><div>Pause menu / Quick save</div>
+    </div>
+    <div class="center"><button class="btn big" id="controls-close">GOT IT</button></div>
+  </div>
+</div>
+
+<!-- Death -->
+<div id="death" class="screen hidden">
+  <div class="deadtxt">YOU GOT BONKED</div>
+  <div class="tsub">The goons got the better of you this time. Shive is probably laughing in autotune.</div>
+  <button class="btn big" id="death-go">GET BACK UP</button>
+</div>
+
+<!-- Ending -->
+<div id="ending" class="screen hidden">
+  <div class="cpanel box">
+    <h2>THE END. ELI IS A DOG AGAIN!</h2>
+    <div id="ending-lines"></div>
+    <div id="ending-fate"></div>
+    <div id="ending-stats"></div>
+    <div class="center"><button class="btn big" id="ending-go">KEEP PLAYING</button></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/util.js"></script>
+<script src="js/worldgen.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/data.js"></script>
+<script src="js/dialogues.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/world.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
