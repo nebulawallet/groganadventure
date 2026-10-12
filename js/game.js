@@ -112,20 +112,25 @@ const G = {
   G.qStage = (id) => G.quests[id] || 0;
   G.skill = (k) => {
     const sk = DATA.SKILLS.find((s) => s.k === k);
-    let v = 2 + G.S[sk.stat] * 2 + Math.ceil(G.effLUK() / 2) + (G.alloc[k] || 0);
+    let v = 2 + G.eff(sk.stat) * 2 + Math.ceil(G.effLUK() / 2) + (G.alloc[k] || 0);
     if (k === 'speech' && G.has('debate_badge')) v += 10;
+    if (k === 'speech' && G.has('council_medal')) v += 10;
+    if (k === 'sneak' && (DATA.ITEMS[G.equipped.armor] || {}).sneak) v += DATA.ITEMS[G.equipped.armor].sneak;
     if (k === 'speech' && G.hasPerk('chavdiplo')) v += 15;
     return Math.min(100, v);
   };
   G.eliIQ = () => 100 + G.S.INT * 8 + (G.level - 1) + (G.hasPerk('bigbrain') ? 15 : 0);
-  G.effLUK = () => G.S.LUK + (G.has('bracelet') ? 1 : 0);
-  G.maxHp = () => 80 + G.S.END * 10 + (G.level - 1) * 8 + (G.hasPerk('thickfur') ? 30 : 0) + (G.has('bracelet') ? 15 : 0);
+  G.eff = (k) => G.S[k] + (k === 'LUK' && G.has('bracelet') ? 1 : 0) + (k === 'PER' && G.has('sinder_amulet') ? 1 : 0);
+  G.effLUK = () => G.eff('LUK');
+  G.maxHp = () => 80 + G.S.END * 10 + (G.level - 1) * 8 + (G.hasPerk('thickfur') ? 30 : 0) + (G.has('bracelet') ? 15 : 0) + (G.has('lucky_scarf') ? 20 : 0);
   G.maxAp = () => 60 + G.S.AGI * 6 + (G.hasPerk('packrat') ? 20 : 0);
   G.xpNext = () => 100 + (G.level - 1) * 125;
   G.armorDR = () => (DATA.ITEMS[G.equipped.armor] || {}).dr || 0;
   G.critChance = () => 0.02 + G.effLUK() * 0.015 + (G.hasPerk('luckypup') ? 0.07 : 0) + (G.flags.veaBlessing ? 0.03 : 0);
-  G.moveSpeed = () => 5 * (1 + (G.S.AGI - 5) * 0.03) * (G.hasPerk('parkour') ? 1.15 : 1) * (G.hasPerk('packrat') ? 1.1 : 1);
+  G.moveSpeed = () => 5 * (1 + (G.S.AGI - 5) * 0.03) * (G.hasPerk('parkour') ? 1.15 : 1) * (G.hasPerk('packrat') ? 1.1 : 1) * (G.has('turbo_sneakers') ? 1.1 : 1) * (G.race ? 1.6 : 1);
   G.pylonsDown = () => DATA.PYLONS.filter((p) => G.pylonHp[p.id] !== undefined && G.pylonHp[p.id] <= 0).length;
+  G.zappersDown = () => DATA.ZAPPERS.filter((z) => G.pylonHp[z.id] !== undefined && G.pylonHp[z.id] <= 0).length;
+  G.raidWave = () => (raid ? raid.wave : 0);
   G.sigs = () => ['rack', 'squid', 'sinder', 'river'].filter((n) => G.flags['sig_' + n]).length;
   G.addSig = (n) => { G.flags['sig_' + n] = true; UI.toast(`Signature collected (${G.sigs()}/4)`, 'quest'); SFX.play('pickup'); checkQuests(); };
 
@@ -137,7 +142,7 @@ const G = {
       if (it.wtype === 'melee' && (G.equipped.melee === 'fists' || !G.equipped.melee)) G.equip(id);
       if (it.wtype !== 'melee' && !G.equipped.ranged) G.equip(id);
     }
-    if (id === 'bracelet') recalc();
+    if (id === 'bracelet' || id === 'lucky_scarf') recalc();
     checkQuests();
   };
   G.take = (id, n = 1) => { G.inv[id] = Math.max(0, (G.inv[id] || 0) - n); if (!G.inv[id]) delete G.inv[id]; };
@@ -297,7 +302,9 @@ const G = {
   function weaponDamage(w) {
     let d = w.dmg;
     if (w.wtype === 'melee') d *= 1 + (G.S.STR - 5) * 0.07 + G.skill('melee') / 250 + (G.hasPerk('bonk') ? 0.2 : 0);
-    else d *= 1 + (G.S.PER - 5) * 0.06 + G.skill('ranged') / 250 + (G.hasPerk('eagle') ? 0.2 : 0);
+    else d *= 1 + (G.eff('PER') - 5) * 0.06 + G.skill('ranged') / 250 + (G.hasPerk('eagle') ? 0.2 : 0);
+    if (G.hasPerk('bassboost') && (w.wtype === 'thrown' || w.aoe || w.id === 'bass_cannon')) d *= 1.25;
+    if (G.hasPerk('adrenaline') && G.hp < G.maxHp() * 0.35) d *= 1.25;
     d *= U.rand(0.88, 1.12);
     const crit = Math.random() < G.critChance();
     if (crit) d *= G.hasPerk('crit') ? 2.5 : 2;
@@ -348,10 +355,10 @@ const G = {
     const r = weaponDamage(w);
     spawnProjectile({
       x: p.x + Math.cos(a) * 0.5, z: p.z + Math.sin(a) * 0.5, a, speed: w.proj.speed, dmg: r.d, crit: r.crit, owner: 'p',
-      life: w.proj.life, size: w.proj.size, color: w.proj.color, grow: w.proj.grow, pierce: w.proj.pierce, aoe: w.aoe,
-      kind: id === 'hornet_jar' ? 'jar' : id === 'agar_blaster' ? 'blob' : 'pellet',
+      life: w.proj.life, size: w.proj.size, color: w.proj.color, grow: w.proj.grow, pierce: w.proj.pierce, aoe: w.aoe, stunAoe: w.stunAoe,
+      kind: id === 'hornet_jar' ? 'jar' : id === 'whoopee_cushion' ? 'cushion' : id === 'agar_blaster' || id === 'bass_cannon' ? 'blob' : 'pellet',
     });
-    SFX.play(id === 'agar_blaster' ? 'blob' : 'shoot');
+    SFX.play(id === 'agar_blaster' || id === 'bass_cannon' ? 'blob' : 'shoot');
   }
 
   function megaBark() {
@@ -453,7 +460,11 @@ const G = {
     let b = U.randi(lo, hi);
     if (G.hasPerk('luckypup')) b = Math.round(b * 1.5);
     spawnPickup('bucks', b, e.x + U.rand(-0.3, 0.3), e.z + U.rand(-0.3, 0.3));
-    if (Math.random() < 0.1 + G.effLUK() * 0.012) spawnPickup(Math.random() < 0.3 ? 'pizza' : Math.random() < 0.5 ? 'fizzy_pop' : 'dog_treat', 1, e.x + 0.4, e.z + 0.2);
+    if (e.def.drop && !G.has(e.def.drop)) spawnPickup(e.def.drop, 1, e.x - 0.4, e.z);
+    if (e.kind === 'bigdawg') UI.toast('Big Dawg is down!', 'quest');
+    if (e.camp === 'bouncer') { G.flags.bouncerBeaten = true; G.flags.bouncerFighting = false; UI.toast('The Bouncer is out cold. The gate is open!', 'quest'); G.openGate(); }
+    if (e.raid && raid) raid.left--;
+    if (Math.random() < (0.1 + G.effLUK() * 0.012) * (G.hasPerk('scavenger') ? 2 : 1)) spawnPickup(Math.random() < 0.2 ? 'big_bone' : Math.random() < 0.3 ? 'pizza' : Math.random() < 0.5 ? 'fizzy_pop' : 'dog_treat', 1, e.x + 0.4, e.z + 0.2);
     if (e.camp === 'lane') { G.flags.laneKills = (G.flags.laneKills || 0) + 1; G.flags.flyerX = e.x; G.flags.flyerZ = e.z; }
     if (e.minion && G.boss) G.boss.minions--;
   }
@@ -482,14 +493,15 @@ const G = {
             const l = Math.max(0.01, dp); e.cdx = (p.x - e.x) / l; e.cdz = (p.z - e.z) / l;
           } else if (e.def.ranged) {
             const a = Math.atan2(p.z - e.z, p.x - e.x);
-            spawnProjectile({ x: e.x, z: e.z, a, speed: 8, dmg: e.dmg, owner: 'e', life: 1.4, size: 0.25, kind: 'bone' });
+            if (e.def.spread) for (let k = 0; k < e.def.spread; k++) spawnProjectile({ x: e.x, z: e.z, a: a + (k - (e.def.spread - 1) / 2) * 0.28, speed: 8.5, dmg: e.dmg, owner: 'e', life: 1.3, size: 0.22, kind: 'glow', colorStr: k % 2 ? '#ff8ae8' : '#7af8ff' });
+            else spawnProjectile({ x: e.x, z: e.z, a, speed: 8, dmg: e.dmg, owner: 'e', life: 1.4, size: 0.25, kind: 'bone' });
             SFX.play('shoot');
           } else if (dp < e.def.range + 0.5) hurtPlayer(e.dmg, e.x, e.z);
         }
       } else {
         const aggroR = (e.aggro ? 14 : 7.5) * sneakMul;
-        const leash = U.dist(e.x, e.z, e.homeX, e.homeZ);
-        if (G.mode === 'play' && dp < aggroR && leash < 22 && G.hp > 0) { e.state = 'chase'; e.aggro = true; }
+        const leash = e.raid ? 0 : U.dist(e.x, e.z, e.homeX, e.homeZ);
+        if (G.mode === 'play' && (dp < aggroR || e.raid) && leash < 22 && G.hp > 0) { e.state = 'chase'; e.aggro = true; }
         else if (e.state === 'chase' && (dp > aggroR * 1.4 || leash > 22)) { e.state = 'return'; e.aggro = false; }
         if (e.state === 'chase') {
           if (e.def.ranged) {
@@ -547,6 +559,11 @@ const G = {
     UI.floatText(p.x, 2, p.z, `-${d}`, '#ff5050');
     UI.shake(0.15); UI.flash('#ff2020');
     SFX.play('hurt');
+    if (G.hp <= 0 && G.hasPerk('secondwind') && G.time - (p.swT || -999) > 90) {
+      p.swT = G.time; G.hp = 1; p.iframes = 1.5;
+      UI.toast('SECOND WIND!', 'level'); UI.flash('#ffe066');
+      return;
+    }
     if (G.hp <= 0) die();
   }
 
@@ -561,28 +578,47 @@ const G = {
     const lost = Math.floor(G.bucks * 0.1);
     G.bucks -= lost;
     G.hp = G.maxHp(); G.ap = G.maxAp();
-    const onIsland = G.boss && (G.boss.active || G.qStage('main') === 80);
-    if (onIsland) {
-      resetBoss();
-      G.p.x = MAP.isleDock.x + 0.5; G.p.z = MAP.isleDock.z;
-    } else { G.p.x = 91; G.p.z = 39.2; }
+    const round = G.boss ? G.boss.round : 0;
+    if (G.race) endRace(false);
+    let where = 'the nearest safe spot';
+    if (round === 1) { resetBoss(); G.p.x = MAP.isleDock.x + 0.5; G.p.z = MAP.isleDock.z; where = 'the island dock'; }
+    else if (round === 2) { resetBoss(); G.p.x = MAP.festival.cx; G.p.z = MAP.festival.z0 + 3; where = 'the festival entrance'; }
+    else {
+      let best = SAFE[0], bd = 1e9;
+      for (const sp of SAFE) { const d = U.dist(sp[0], sp[1], G.p.x, G.p.z); if (d < bd) { bd = d; best = sp; } }
+      const q = WORLD.snap(best[0], best[1]); G.p.x = q.x; G.p.z = q.z; where = best[2];
+    }
+    const onIsland = round > 0;
     for (const pr of G.projectiles) scene.remove(pr.sprite);
     G.projectiles = [];
     for (const e of G.enemies) if (e.aggro) { e.aggro = false; e.state = 'return'; }
     G.p.iframes = 2;
     G.mode = 'play';
-    UI.toast(lost ? `You wake up at ${onIsland ? 'the island dock' : 'home'}. Lost ${lost} Bucks.` : 'You wake up, a bit sore.', 'warn');
+    void onIsland;
+    UI.toast(lost ? `You wake up at ${where}. Lost ${lost} Bucks.` : 'You wake up, a bit sore.', 'warn');
   };
+
+  // game-time timers (pause with the game, unlike setTimeout)
+  let timers = [];
+  function after(sec, fn) { timers.push({ at: G.time + sec, fn }); }
+  function runTimers() {
+    if (!timers.length) return;
+    const due = timers.filter((t) => t.at <= G.time);
+    timers = timers.filter((t) => t.at > G.time);
+    for (const t of due) t.fn();
+  }
+  const SAFE = [[91, 39.2, 'home'], [119, 58, "FlowingFox's Outpost"], [96, 20, 'Mooresville'], [166, 128, 'Birkdale Village'], [168, 30, 'Davidson'], [40, 167, 'Terrell'], [126, 129, 'Cowans Ford Dam'], [80, 106, 'Sherrills Ford'], [26, 60, 'Denver']];
 
   // ======================= projectiles & effects =======================
   function spawnProjectile(o) {
     let tex;
     if (o.kind === 'bone') tex = itemTex('bone');
     else if (o.kind === 'jar') tex = itemTex('hornet_jar');
-    else if (o.kind === 'note') tex = orbTex(o.colorStr || '#ff4fd8', 8);
+    else if (o.kind === 'cushion') tex = itemTex('whoopee');
+    else if (o.kind === 'note' || o.kind === 'glow') tex = orbTex(o.colorStr || '#ff4fd8', o.kind === 'glow' ? 6 : 8);
     else tex = orbTex('#' + (o.color || 0xffffff).toString(16).padStart(6, '0'), o.kind === 'blob' ? 12 : 6);
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, alphaTest: 0.5 }));
-    const s = o.kind === 'bone' || o.kind === 'jar' ? 0.6 : o.kind === 'note' ? 0.55 : (o.size || 0.2) * 2.4;
+    const s = o.kind === 'bone' || o.kind === 'jar' || o.kind === 'cushion' ? 0.6 : o.kind === 'note' ? 0.55 : (o.size || 0.2) * 2.4;
     sp.scale.set(s, s, 1);
     scene.add(sp);
     const p = Object.assign({ vx: Math.cos(o.a) * o.speed, vz: Math.sin(o.a) * o.speed, hit: new Set(), sprite: sp, baseScale: s, age: 0 }, o);
@@ -591,10 +627,12 @@ const G = {
   }
 
   function explode(pr) {
-    SFX.play('boom');
-    ringFx(pr.x, pr.z, pr.aoe, 0xffd23a);
-    for (let i = 0; i < 16; i++) particle(pr.x, 0.5, pr.z, i % 2 ? '#ffd23a' : '#222222', U.rand(-4, 4), U.rand(1, 4), U.rand(-4, 4), 0.7);
-    for (const e of G.enemies) if (!e.dead && U.dist(e.x, e.z, pr.x, pr.z) < pr.aoe) hurtEnemy(e, pr.dmg, pr.crit, 0, 0, 1.0);
+    const cush = pr.kind === 'cushion';
+    SFX.play(cush ? 'squeak' : 'boom');
+    ringFx(pr.x, pr.z, pr.aoe, cush ? 0xff8ac8 : 0xffd23a);
+    for (let i = 0; i < 16; i++) particle(pr.x, 0.5, pr.z, i % 2 ? (cush ? '#ff8ac8' : '#ffd23a') : (cush ? '#ffffff' : '#222222'), U.rand(-4, 4), U.rand(1, 4), U.rand(-4, 4), 0.7);
+    if (cush) UI.floatText(pr.x, 1.8, pr.z, 'PFFFBBBT!', '#ff8ac8', true);
+    for (const e of G.enemies) if (!e.dead && U.dist(e.x, e.z, pr.x, pr.z) < pr.aoe) hurtEnemy(e, pr.dmg, pr.crit, 0, 0, pr.stunAoe || 1.0);
     if (G.boss && G.boss.active && U.dist(G.boss.x, G.boss.z, pr.x, pr.z) < pr.aoe) hurtBoss(pr.dmg, pr.crit);
     for (const py of G.pylons) if (!py.dead && U.dist(py.x, py.z, pr.x, pr.z) < pr.aoe + 0.5) hurtPylon(py, pr.dmg, pr.crit);
   }
@@ -606,8 +644,9 @@ const G = {
       pr.age += d;
       pr.x += pr.vx * d; pr.z += pr.vz * d; pr.life -= d;
       if (pr.grow) { pr.size += pr.grow * d; pr.sprite.scale.setScalar(pr.size * 2.4); }
-      pr.sprite.position.set(pr.x, 0.7 + (pr.kind === 'jar' ? Math.sin(Math.min(1, pr.age / 0.9) * Math.PI) * 1.2 : 0), pr.z);
-      if (pr.kind === 'bone' || pr.kind === 'jar') pr.sprite.material.rotation = pr.age * 12;
+      const lob = pr.kind === 'jar' || pr.kind === 'cushion';
+      pr.sprite.position.set(pr.x, 0.7 + (lob ? Math.sin(Math.min(1, pr.age / 0.9) * Math.PI) * 1.2 : 0), pr.z);
+      if (pr.kind === 'bone' || lob) pr.sprite.material.rotation = pr.age * 12;
       const t = WORLD.tileAt(pr.x, pr.z);
       if (t !== T.WATER && WORLD.solidAt(pr.x, pr.z) && pr.kind !== 'note' && pr.kind !== 'coin') { if (pr.aoe) explode(pr); pr.life = 0; }
       if (pr.life <= 0) { if (pr.aoe && pr.life > -1 && !pr.exploded) { pr.exploded = true; explode(pr); } continue; }
@@ -736,7 +775,27 @@ const G = {
   }
 
   // ======================= pylons =======================
+  function buildZapper(def) {
+    const g = new THREE.Group();
+    const dark = new THREE.MeshLambertMaterial({ color: 0x2a2a34, flatShading: true });
+    const blue = new THREE.MeshBasicMaterial({ color: 0x5ab8ff });
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.2, 0.8), dark); base.position.y = 0.1; g.add(base);
+    const pole = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.4, 0.15), dark); pole.position.y = 0.8; g.add(pole);
+    const cage = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 0.7), new THREE.MeshBasicMaterial({ color: 0x9ad8ff, wireframe: true })); cage.position.y = 1.9; g.add(cage);
+    const orb = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.6, 0.35), blue); orb.position.y = 1.9; g.add(orb);
+    const ring = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.08, 0.8), dark); ring.position.y = 2.4; g.add(ring);
+    g.position.set(def.x, 0, def.z);
+    scene.add(g);
+    return { g, orb, ring, hpMax: 120 };
+  }
   function buildPylons() {
+    for (const def of DATA.ZAPPERS) {
+      const m = buildZapper(def);
+      const zp = { def, id: def.id, kind: 'zapper', x: def.x, z: def.z, g: m.g, orb: m.orb, ring: m.ring, hpMax: m.hpMax, hp: G.pylonHp[def.id] !== undefined ? G.pylonHp[def.id] : m.hpMax, dead: false, flash: 0 };
+      if (zp.hp <= 0) breakPylon(zp, true);
+      G.pylons.push(zp);
+      WORLD.map.solid[Math.floor(def.z) * WORLD.map.W + Math.floor(def.x)] = 1;
+    }
     for (const def of DATA.PYLONS) {
       const g = new THREE.Group();
       const dark = new THREE.MeshLambertMaterial({ color: 0x1a1a22, flatShading: true });
@@ -754,7 +813,7 @@ const G = {
       g.position.set(def.x, 0, def.z);
       scene.add(g);
       const hpMax = 220;
-      const py = { def, id: def.id, x: def.x, z: def.z, g, orb, ring, hpMax, hp: G.pylonHp[def.id] !== undefined ? G.pylonHp[def.id] : hpMax, dead: false, flash: 0 };
+      const py = { def, id: def.id, kind: 'pylon', x: def.x, z: def.z, g, orb, ring, hpMax, hp: G.pylonHp[def.id] !== undefined ? G.pylonHp[def.id] : hpMax, dead: false, flash: 0 };
       if (py.hp <= 0) breakPylon(py, true);
       G.pylons.push(py);
       WORLD.map.solid[Math.floor(def.z) * WORLD.map.W + Math.floor(def.x)] = 1;
@@ -778,6 +837,13 @@ const G = {
     if (silent) return;
     SFX.play('boom'); UI.shake(0.4);
     for (let i = 0; i < 30; i++) particle(py.x, 2, py.z, U.pick(['#ff4fd8', '#7af8ff', '#ffe066', '#333333']), U.rand(-5, 5), U.rand(2, 6), U.rand(-5, 5), 1);
+    if (py.kind === 'zapper') {
+      G.xp(70);
+      UI.toast(`Bug Zapper smashed! (${G.zappersDown()}/3) The moths are free!`, 'quest');
+      for (let i = 0; i < 10; i++) particle(py.x, 1.8, py.z, '#fff59a', U.rand(-2, 2), U.rand(3, 6), U.rand(-2, 2), 1.5);
+      checkQuests(); autosave();
+      return;
+    }
     G.xp(150);
     UI.toast(`${py.def.name} destroyed! (${G.pylonsDown()}/3)`, 'quest');
     if (G.pylonsDown() >= 3) UI.toast("Shive's barrier is collapsing!", 'level');
@@ -786,6 +852,11 @@ const G = {
   function updatePylons(dt) {
     for (const py of G.pylons) {
       if (py.dead) continue;
+      if (py.kind === 'zapper') {
+        py.orb.material.color.setHSL(0.58, 1, 0.55 + Math.sin(G.time * 20) * 0.2);
+        if (Math.random() < dt * 2 && U.dist(py.x, py.z, G.p.x, G.p.z) < 14) particle(py.x, 1.9, py.z, '#bfe8ff', U.rand(-1, 1), U.rand(0.5, 2), U.rand(-1, 1), 0.3);
+        continue;
+      }
       py.orb.rotation.y += dt * 2; py.orb.position.y = 4 + Math.sin(G.time * 3) * 0.15;
       py.ring.scale.setScalar(1 + Math.sin(G.time * 8) * 0.12);
       // thumping bass pulse
@@ -797,7 +868,7 @@ const G = {
   function buildNpcs() {
     for (const def of DATA.NPCS) {
       const pos = WORLD.snap(def.x, def.z);
-      const a = makeActor(charTex('npc_' + def.id, DATA.LOOKS[def.look]), def.id === 'shive' ? 1.35 : 1);
+      const a = makeActor(charTex('npc_' + def.id, DATA.LOOKS[def.look]), def.id === 'shive' ? 1.35 : def.scale || 1);
       Object.assign(a, { id: def.id, name: def.name, def, x: pos.x, z: pos.z });
       a.face = -1; setFrame(a, 0);
       const mk = new THREE.Sprite(new THREE.SpriteMaterial({ map: markTex(), alphaTest: 0.5, depthTest: false }));
@@ -807,8 +878,12 @@ const G = {
       G.npcs[def.id] = a;
     }
   }
+  const SECOND = { vea: ['vea', 'vea2'], fox: ['fox', 'fox2'], jack: ['jack', 'jack2'], eski: ['eski', 'eski2'], squid: ['squid', 'squid2'], rack: ['rack', 'rack2'], sinder: ['sinder', 'sinder2'], rivergrain: ['river', 'river2'] };
   function npcWants(id) {
-    if (id === 'shive') return G.qStage('main') === 80 && !G.flags.shiveDefeated;
+    if (id === 'shive') return (G.qStage('main') === 80 || G.qStage('main') === 89) && !G.flags.shiveDefeated;
+    if (SECOND[id] && G.qStage(SECOND[id][0]) === 100 && G.qStage(SECOND[id][1]) === 0) return true;
+    if (id === 'roby' && G.qStage('main') >= 60 && G.qStage('roby2') === 0) return true;
+    if (G.qStage('eski2') === 10 && G.has('mixtape') && ['rack', 'squid', 'rivergrain', 'jack'].includes(id) && !G.flags['tape_' + id]) return true;
     const meet = { vea: null, rack: 'metRack', roby: 'metRoby', squid: 'metSquid', sinder: 'metSinder', jack: 'metJack', eski: 'metEski', rivergrain: 'metRiver', fox: null };
     if (meet[id] && !G.flags[meet[id]]) return true;
     for (const qid in DATA.QUESTS) {
@@ -824,7 +899,17 @@ const G = {
     const p = G.p;
     for (const id in G.npcs) {
       const n = G.npcs[id];
-      const vis = !(id === 'shive' && (G.qStage('main') < 70 || G.flags.shiveGone || (G.boss && G.boss.active)));
+      let vis = true;
+      if (id === 'shive') {
+        const s = G.qStage('main');
+        const atIsland = s >= 70 && s <= 80 && !G.flags.shiveRound1;
+        const atFest = s >= 88 && s < 90 && !G.flags.shiveGone;
+        vis = (atIsland || atFest) && !(G.boss && G.boss.active);
+        const spot = atFest ? MAP.festival.shive : { x: 68, z: 70 };
+        const key = atFest ? 'fest' : 'isle';
+        if (n.spotKey !== key && !G.boss && !G.flags.shiveDefeated) { n.spotKey = key; const q = WORLD.snap(spot.x, spot.z); n.x = q.x; n.z = q.z; placeActor(n); }
+      }
+      if (id === 'bouncer') vis = !G.flags.bouncerBeaten && !G.flags.bouncerFighting;
       n.sprite.visible = n.shadow.visible = vis;
       n.mark.visible = vis && npcWants(id);
       n.mark.position.set(n.x, (id === 'shive' ? 2.5 : 1.85) + Math.sin(G.time * 4) * 0.08, n.z);
@@ -848,10 +933,15 @@ const G = {
       if (d < bd) { bd = d; best = { type: 'npc', id, label: `Talk to ${n.name}` }; }
     }
     if (!best) {
-      for (const py of G.pylons) if (!py.dead && U.dist(py.x, py.z, p.x, p.z) < 2.3) best = { type: 'pylon', py, label: G.skill('tech') >= 40 ? `Hack ${py.def.name} [Tech ${G.skill('tech')}/40]` : `Hack pylon [Tech ${G.skill('tech')}/40]: smash it instead!` };
+      for (const py of G.pylons) if (!py.dead && py.kind === 'pylon' && U.dist(py.x, py.z, p.x, p.z) < 2.3) best = { type: 'pylon', py, label: G.skill('tech') >= 40 ? `Hack ${py.def.name} [Tech ${G.skill('tech')}/40]` : `Hack pylon [Tech ${G.skill('tech')}/40]: smash it instead!` };
       const pier = MAP.pier, dock = MAP.isleDock;
       if (U.dist(p.x, p.z, pier.x + 0.5, pier.z + 1) < 2.4) best = { type: 'pier', label: G.has('hydro_scooter') ? "Ride the Hydro-Scooter to Shive's Island" : 'The island is too far to swim...' };
       if (U.dist(p.x, p.z, dock.x + 1, dock.z + 0.5) < 2.4 && !(G.boss && G.boss.active)) best = { type: 'dock', label: 'Ride the Hydro-Scooter back to the pier' };
+      for (const sp of spots) {
+        if (U.dist(p.x, p.z, sp.x, sp.z) > 2.2) continue;
+        if (sp.kind === 'fish') best = { type: 'fish', sp, label: G.qStage('rack2') === 10 && !G.has('catfish') ? 'Fish for the Legendary Catfish' : 'Go fishing' };
+        if (sp.kind === 'tower' && G.qStage('fox2') === 10 && !G.flags['cam_' + sp.id]) best = { type: 'tower', sp, label: 'Plant a spy cam' };
+      }
     }
     interactTarget = best;
     UI.prompt(best ? `[E] ${best.label}` : null);
@@ -876,8 +966,177 @@ const G = {
       });
     } else if (t.type === 'dock') {
       UI.fade(() => { G.p.x = MAP.pier.x + 3; G.p.z = MAP.pier.z + 0.7; });
+    } else if (t.type === 'fish') goFish();
+    else if (t.type === 'tower') {
+      G.flags['cam_' + t.sp.id] = true;
+      SFX.play('zap'); G.xp(40);
+      UI.toast(`Spy cam planted! (${['tower1', 'tower2', 'tower3'].filter((k) => G.flags['cam_' + k]).length}/3)`, 'quest');
+      checkQuests();
     }
   }
+
+  // ======================= spots: fishing & watchtowers =======================
+  const spots = [];
+  function buildSpots() {
+    const W = MAP.W;
+    const nearShore = (x, z) => {
+      let best = null, bd = 1e9;
+      for (let dz = -9; dz <= 9; dz++) for (let dx = -9; dx <= 9; dx++) {
+        const tx = Math.floor(x) + dx, tz = Math.floor(z) + dz;
+        if (tx < 1 || tz < 1 || tx >= W - 1 || tz >= W - 1 || MAP.solid[tz * W + tx]) continue;
+        const wet = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => MAP.tiles[(tz + b) * W + tx + a] === T.WATER);
+        if (!wet) continue;
+        const d = Math.hypot(dx, dz);
+        if (d < bd) { bd = d; best = { x: tx + 0.5, z: tz + 0.5 }; }
+      }
+      return best || { x, z };
+    };
+    for (const def of DATA.SPOTS) {
+      let pos;
+      if (def.at === 'pier') pos = { x: MAP.pier.x + 0.5, z: MAP.pier.z + 1 };
+      else if (def.kind === 'fish') pos = nearShore(def.x, def.z);
+      else pos = WORLD.snap(def.x, def.z);
+      const sp = { id: def.id, kind: def.kind, x: pos.x, z: pos.z };
+      if (def.kind === 'fish') {
+        const icon = new THREE.Sprite(new THREE.SpriteMaterial({ map: itemTex('catfish'), alphaTest: 0.5 }));
+        icon.scale.set(0.55, 0.55, 1); icon.center.set(0.5, 0);
+        scene.add(icon); sp.icon = icon;
+      }
+      spots.push(sp);
+    }
+  }
+  let fishCd = 0;
+  function goFish() {
+    if (G.time < fishCd) { UI.toast('Patience... the fish are thinking.', 'warn'); return; }
+    fishCd = G.time + 2.2;
+    SFX.play('ui');
+    const p = G.p;
+    const questing = G.qStage('rack2') === 10 && !G.has('catfish');
+    const chance = 0.18 + G.effLUK() * 0.045;
+    if (Math.random() < chance) {
+      if (questing) {
+        UI.floatText(p.x, 2.4, p.z, 'THE LEGENDARY CATFISH!!', '#ffe066', true);
+        G.give('catfish', 1); G.xp(60); SFX.play('level');
+      } else {
+        const b = U.randi(4, 12); G.bucks += b;
+        UI.floatText(p.x, 2.2, p.z, `Caught a bass! (+$${b})`, '#7af8ff'); SFX.play('coin');
+      }
+    } else {
+      UI.floatText(p.x, 2.2, p.z, U.pick(['An old boot.', 'Seaweed.', "A goon's sock. Gross.", 'A tiny fish. You let it go.', 'Nothing. The fish are laughing.', 'A Roblox gift card (expired).']), '#cccccc');
+    }
+  }
+
+  // ======================= Jack's scooter rally =======================
+  let raceRings = [];
+  G.race = null;
+  G.startRace = () => {
+    if (G.race) return;
+    UI.fade(() => {
+      const st = DATA.RACE.cps[0];
+      G.p.x = st[0]; G.p.z = st[1] - 1.5;
+      G.race = { cp: 1, t: DATA.RACE.time };
+      for (const [x, z] of DATA.RACE.cps) {
+        const m = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.5, 20), new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+        m.rotation.x = -Math.PI / 2; m.position.set(x, 0.1, z);
+        scene.add(m); raceRings.push(m);
+      }
+      raceRings[0].visible = false;
+      UI.toast(`RACE! Hit all the checkpoints in ${DATA.RACE.time} seconds! (You're on Jack's scooter: +60% speed)`, 'level');
+      SFX.play('quest');
+    });
+  };
+  function endRace(won) {
+    for (const m of raceRings) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); }
+    raceRings = [];
+    G.race = null;
+    UI.raceTimer(null);
+    if (won) { SFX.play('level'); UI.toast('RALLY COMPLETE! New record!', 'level'); if (G.qStage('jack2') === 10) G.qSet('jack2', 20); }
+    else UI.toast('Out of time! Talk to Jack to try again.', 'warn');
+  }
+  function updateRace(dt) {
+    const r = G.race;
+    if (!r) return;
+    r.t -= dt;
+    UI.raceTimer(r.t, r.cp, DATA.RACE.cps.length);
+    raceRings.forEach((m, i) => { m.visible = i >= r.cp; m.material.color.setHex(i === r.cp ? 0xffe066 : 0x666666); if (i === r.cp) m.rotation.z = G.time * 2; });
+    const [cx, cz] = DATA.RACE.cps[r.cp];
+    if (U.dist(G.p.x, G.p.z, cx, cz) < 2.3) {
+      r.cp++;
+      SFX.play('coin');
+      if (r.cp >= DATA.RACE.cps.length) { endRace(true); return; }
+    }
+    if (r.t <= 0) endRace(false);
+  }
+
+  // ======================= Aldersprings raid (main stage 87) =======================
+  let raid = null;
+  function updateRaid(dt) {
+    if (G.qStage('main') !== 87) { raid = null; return; }
+    const p = G.p, cx = 108, cz = 40.5;
+    if (!raid) {
+      if (U.dist(p.x, p.z, cx, cz) > 22) return;
+      raid = { wave: 0, left: 0, wait: 1.5 };
+      UI.toast("SHIVE'S GOONS ARE RAIDING ALDERSPRINGS LANE! Hold the line!", 'level');
+      SFX.play('bark');
+    }
+    if (raid.left > 0) return;
+    raid.wait -= dt;
+    if (raid.wait > 0) return;
+    if (raid.wave >= DATA.RAID.length) {
+      raid = null;
+      G.xp(300);
+      UI.toast('The raid is over! Aldersprings Lane is safe!', 'level');
+      G.qSet('main', 88);
+      return;
+    }
+    const list = DATA.RAID[raid.wave];
+    raid.wave++;
+    raid.left = list.length;
+    raid.wait = 2.5;
+    UI.toast(`WAVE ${raid.wave}/${DATA.RAID.length}`, 'level');
+    list.forEach((k, i) => {
+      const side = i % 2 ? 128 : 88;
+      const e = spawnEnemy(k, side + U.rand(-1.5, 1.5), cz + U.rand(-1, 1), 3, 'raid');
+      e.raid = true; e.aggro = true; e.state = 'chase'; e.homeX = cx; e.homeZ = cz;
+    });
+  }
+
+  // ======================= festival gate / bouncer =======================
+  G.openGate = () => {
+    G.flags.gateOpen = true;
+    WORLD.openGate();
+    if (G.qStage('main') === 88) G.qSet('main', 89);
+    SFX.play('quest');
+  };
+  G.bouncerFight = () => {
+    const n = G.npcs.bouncer;
+    G.flags.bouncerFighting = true;
+    const e = spawnEnemy('rottweiler', n.x, n.z - 1, 4, 'bouncer');
+    e.aggro = true; e.state = 'chase';
+    UI.toast('The Bouncer wants to fight!', 'warn');
+  };
+
+  // ======================= fast travel =======================
+  const TRAVEL_FIX = { mil: [100, 170], river: [132, 137], festival: [170, 155], island: null, i77: [151, 70], pier: [86, 60] };
+  G.canTravel = (id) => {
+    if (!G.discovered[id]) return 'You have not discovered that place yet.';
+    if (G.boss && G.boss.active) return "Can't fast travel during a boss fight!";
+    if (G.race) return "Can't fast travel during a race!";
+    if (raid) return "Can't fast travel during the raid!";
+    if (TRAVEL_FIX[id] === null) return 'You need the Hydro-Scooter to get there.';
+    if (U.dist(G.p.x, G.p.z, MAP.ISLE.x, MAP.ISLE.z) < 12) return 'Use the Hydro-Scooter to leave the island.';
+    if (G.enemies.some((e) => !e.dead && e.aggro && U.dist(e.x, e.z, G.p.x, G.p.z) < 14)) return "Can't fast travel with goons chasing you!";
+    return null;
+  };
+  G.fastTravel = (id) => {
+    const why = G.canTravel(id);
+    if (why) { UI.toast(why, 'warn'); return false; }
+    const L = MAP.LOCS.find((l) => l.id === id);
+    const fx = TRAVEL_FIX[id] || [L.x, L.z];
+    const q = WORLD.snap(fx[0], fx[1]);
+    UI.fade(() => { G.p.x = q.x; G.p.z = q.z; UI.toast(`Travelled to ${L.name}.`, 'item'); });
+    return true;
+  };
 
   // ======================= camps =======================
   function initCamps() {
@@ -899,8 +1158,8 @@ const G = {
       }
       if (def.when && !def.when(G)) continue;
       const far = U.dist(p.x, p.z, def.x, def.z) > 26;
-      if (c.clearedAt !== null && (!def.respawn || G.time - c.clearedAt < def.respawn || !far)) continue;
-      c.spawned = true;
+      if (c.clearedAt !== null && !c.force && (!def.respawn || G.time - c.clearedAt < def.respawn || !far)) continue;
+      c.spawned = true; c.force = false;
       if (id === 'lane') G.flags.laneKills = 0;
       c.members = def.members.map((k, i) => {
         const a = (i / def.members.length) * Math.PI * 2;
@@ -908,11 +1167,14 @@ const G = {
       });
     }
   }
+  // make a respawning camp come back right away (used when a quest needs it)
+  G.forceCamp = (id) => { const c = G.camps[id]; if (c && !c.spawned && !G.campsCleared[id] && c.clearedAt !== null) c.force = true; };
   function onCampCleared(id) {
     if (id === 'lane' && G.qStage('main') === 20) { G.qSet('main', 30); UI.toast('One of the goons dropped something...', 'quest'); }
     if (id === 'doghouse' && G.qStage('fox') === 10) G.qSet('fox', 20);
     if (id === 'hecklers' && G.qStage('river') === 10) G.qSet('river', 20);
     if (id.startsWith('pylon')) UI.toast('The Goon Alpha is down! Now smash that pylon!', 'quest');
+    if (id === 'ramsey' && G.qStage('vea2') === 10) G.qSet('vea2', 20);
   }
 
   // ======================= quest checks =======================
@@ -925,12 +1187,20 @@ const G = {
     if (G.qStage('sinder') === 10 && G.count('glowcap') >= 3) G.qSet('sinder', 20);
     if (G.qStage('vea') === 10 && G.count('wildflower') >= 4) G.qSet('vea', 20);
     if (G.qStage('roby') === 10 && G.sigs() >= 4) G.qSet('roby', 20);
+    if (G.qStage('main') === 84 && G.count('merch_box') >= 4) G.qSet('main', 85);
+    if (G.qStage('squid2') === 10 && G.zappersDown() >= 3) G.qSet('squid2', 20);
+    if (G.qStage('sinder2') === 10 && G.count('spirit_candle') >= 3) G.qSet('sinder2', 20);
+    if (G.qStage('rack2') === 10 && G.has('catfish')) G.qSet('rack2', 20);
+    if (G.qStage('eski2') === 10 && ['rack', 'squid', 'rivergrain', 'jack'].every((n) => G.flags['tape_' + n])) G.qSet('eski2', 20);
+    if (G.qStage('fox2') === 10 && ['tower1', 'tower2', 'tower3'].every((t) => G.flags['cam_' + t])) G.qSet('fox2', 20);
     if (G.qStage('main') === 60 && G.pylonsDown() >= 3 && !G.has('hydro_scooter') && !G.flags.needScooterHint) { G.flags.needScooterHint = true; UI.toast("Barrier's down! Now you need a way across the water. Talk to Jack Valentine.", 'quest'); }
   }
   G.checkQuests = checkQuests;
   function onMainStage(s) {
     if (s === 60 && G.qStage('jack') === 0) UI.toast('Tip: Jack Valentine at Volt Valentine Scooters (Mooresville) might help you cross the lake.', 'quest');
     if (s === 80) SFX.startMusic('world');
+    if (s === 83) UI.toast('Tip: Birkdale Village is south-east, past I-77. Open the map (M) and look for Huntersville.', 'quest');
+    if (s === 87) UI.toast('Get back to Aldersprings Lane! The goons are coming!', 'warn');
   }
 
   // quest target position resolver (for markers)
@@ -960,6 +1230,15 @@ const G = {
       }
       return best;
     }
+    if (t === 'race') {
+      if (G.race) { const c = DATA.RACE.cps[G.race.cp]; return { x: c[0], z: c[1] }; }
+      return { x: G.npcs.jack.x, z: G.npcs.jack.z };
+    }
+    const nearest = (list) => { let best = null, bd = 1e9; for (const o of list) { const d = U.dist(o.x, o.z, G.p.x, G.p.z); if (d < bd) { bd = d; best = { x: o.x, z: o.z }; } } return best; };
+    if (t === 'tapes') return nearest(['rack', 'squid', 'rivergrain', 'jack'].filter((n) => !G.flags['tape_' + n]).map((n) => G.npcs[n]));
+    if (t === 'zapper') return nearest(G.pylons.filter((py) => py.kind === 'zapper' && !py.dead));
+    if (t === 'spot:fish') return nearest(spots.filter((sp) => sp.kind === 'fish'));
+    if (t === 'spot:tower') return nearest(spots.filter((sp) => sp.kind === 'tower' && !G.flags['cam_' + sp.id]));
     if (t.startsWith('item:')) {
       const it = t.slice(5);
       let best = null, bd = 1e9;
@@ -991,11 +1270,13 @@ const G = {
   }
 
   // ======================= boss: SHIVE =======================
-  G.bossStart = () => {
+  G.bossStart = (where) => {
     const n = G.npcs.shive;
-    const hp = G.flags.shiveRattled ? 1000 : 1200;
+    const fest = where === 'festival';
+    const hp = fest ? (G.flags.shiveRattled2 ? 1250 : 1450) : (G.flags.shiveRattled ? 650 : 750);
+    const arena = fest ? { x: MAP.festival.cx, z: MAP.festival.cz, r: 6, tr: 7 } : { x: MAP.ISLE.x, z: MAP.ISLE.z + 1, r: 3, tr: 5 };
     const a = makeActor(charTex('npc_shive', DATA.LOOKS.shive), 1.35);
-    Object.assign(a, { x: n.x, z: n.z, hp, maxHp: hp, active: true, shieldT: 0, stun: 0, atk: null, atkT: 2.0, tired: 0, minions: 0, flash: 0, mvT: 0, tx: n.x, tz: n.z });
+    Object.assign(a, { round: fest ? 2 : 1, arena, x: n.x, z: n.z, hp, maxHp: hp, active: true, shieldT: 0, stun: 0, atk: null, atkT: 2.0, tired: 0, minions: 0, flash: 0, mvT: 0, tx: n.x, tz: n.z });
     // shield bubble
     const sh = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff4fd8, transparent: true, opacity: 0.3, depthWrite: false }));
     scene.add(sh); a.bubble = sh;
@@ -1038,16 +1319,18 @@ const G = {
       b.atkT -= dt;
       // drift around the arena
       b.mvT -= dt;
-      if (b.mvT <= 0) { b.mvT = U.rand(1.5, 3); const a = Math.random() * Math.PI * 2; b.tx = MAP.ISLE.x + Math.cos(a) * 3; b.tz = MAP.ISLE.z + 1 + Math.sin(a) * 3; }
+      if (b.mvT <= 0) { b.mvT = U.rand(1.5, 3); const a = Math.random() * Math.PI * 2; b.tx = b.arena.x + Math.cos(a) * b.arena.r; b.tz = b.arena.z + Math.sin(a) * b.arena.r; }
       const dx = b.tx - b.x, dz = b.tz - b.z, dl = Math.hypot(dx, dz);
       if (dl > 0.2 && b.tired <= 0) moveEnt(b, (dx / dl) * 2.2 * dt, (dz / dl) * 2.2 * dt, 0.4);
       if (b.atkT <= 0 && b.tired <= 0) {
         const opts = ['ring', 'burst', 'burst', 'drop', 'teleport'];
         if (b.minions < 3) opts.push('summon');
         if (phase2) opts.push('money', 'money', 'ring');
+        if (b.round === 2) opts.push('spiral', 'burst');
+        if (b.round === 2 && phase2) opts.push('spiral');
         b.atk = U.pick(opts); b.step = 0; b.stepT = 0;
         b.atkT = phase2 ? 2.2 : 3;
-        const taunts = { ring: 'DROP THE BEAT!', burst: 'AUTOTUNE ORBS!', drop: 'BASS... DROP!!!', teleport: '*glitter poof*', summon: 'GOONS! ASSEMBLE!', money: 'MAKE IT RAIN!' };
+        const taunts = { spiral: 'DOGCORE SPIRAL!!', ring: 'DROP THE BEAT!', burst: 'AUTOTUNE ORBS!', drop: 'BASS... DROP!!!', teleport: '*glitter poof*', summon: 'GOONS! ASSEMBLE!', money: 'MAKE IT RAIN!' };
         UI.floatText(b.x, 3.2, b.z, taunts[b.atk], '#ff4fd8');
       }
       if (b.atk) {
@@ -1060,6 +1343,12 @@ const G = {
               for (let i = 0; i < n; i++) bossShoot((i / n) * Math.PI * 2 + b.step * 0.25, 5.5, i % 2 ? '#7af8ff' : '#ff4fd8');
               SFX.play('blob');
               b.step++; b.stepT = 0.45; if (b.step >= 3) b.atk = null;
+              break;
+            }
+            case 'spiral': {
+              for (let k = 0; k < 3; k++) bossShoot(b.step * 0.42 + (k * Math.PI * 2) / 3, 6, k % 2 ? '#7af8ff' : '#ffe066');
+              b.step++; b.stepT = 0.07; if (b.step >= 30) b.atk = null;
+              if (b.step % 4 === 0) SFX.play('shoot');
               break;
             }
             case 'burst': {
@@ -1082,7 +1371,7 @@ const G = {
               for (let i = 0; i < 14; i++) particle(b.x, 1, b.z, U.pick(['#ff4fd8', '#7af8ff', '#ffe066']), U.rand(-3, 3), U.rand(1, 4), U.rand(-3, 3), 0.6);
               for (let tries = 0; tries < 20; tries++) {
                 const a = Math.random() * Math.PI * 2, r = U.rand(2, 5);
-                const nx = MAP.ISLE.x + Math.cos(a) * r, nz = MAP.ISLE.z + 1 + Math.sin(a) * r;
+                const nx = b.arena.x + Math.cos(a) * r * (b.arena.tr / 5), nz = b.arena.z + Math.sin(a) * r * (b.arena.tr / 5);
                 if (!blocked(nx, nz, 0.4) && U.dist(nx, nz, p.x, p.z) > 3) { b.x = nx; b.z = nz; break; }
               }
               b.atk = null; b.atkT = 0.6;
@@ -1090,8 +1379,9 @@ const G = {
             }
             case 'summon': {
               for (let i = 0; i < 2; i++) {
-                const e = spawnEnemy(phase2 ? 'barker' : 'pup', b.x + U.rand(-2, 2), b.z + U.rand(-2, 2), 3, 'boss');
-                e.minion = true; e.aggro = true; e.state = 'chase'; e.homeX = MAP.ISLE.x; e.homeZ = MAP.ISLE.z; b.minions++;
+                const kind = b.round === 2 ? (phase2 ? 'raver' : U.pick(['pup', 'barker'])) : phase2 ? 'barker' : 'pup';
+                const e = spawnEnemy(kind, b.x + U.rand(-2, 2), b.z + U.rand(-2, 2), b.round === 2 ? 4 : 3, 'boss');
+                e.minion = true; e.aggro = true; e.state = 'chase'; e.homeX = b.arena.x; e.homeZ = b.arena.z; b.minions++;
               }
               b.atk = null;
               break;
@@ -1100,12 +1390,12 @@ const G = {
               for (let i = 0; i < 6; i++) {
                 const tx = p.x + U.rand(-3, 3), tz = p.z + U.rand(-3, 3);
                 markerFx(tx, tz, 1.2, 1.0);
-                setTimeout(() => {
+                after(1.0, () => {
                   if (!G.boss || !G.boss.active) return;
                   ringFx(tx, tz, 1.3, 0xffd23a, 0.3);
                   for (let k = 0; k < 4; k++) particle(tx, 2, tz, '#ffd23a', U.rand(-2, 2), U.rand(1, 3), U.rand(-2, 2), 0.5);
                   if (U.dist(G.p.x, G.p.z, tx, tz) < 1.3) hurtPlayer(13, tx, tz);
-                }, 1000);
+                });
               }
               SFX.play('coin');
               b.atk = null;
@@ -1131,7 +1421,8 @@ const G = {
   function bossDefeated() {
     const b = G.boss;
     b.active = false;
-    G.flags.shiveDefeated = true;
+    if (b.round === 2) G.flags.shiveDefeated = true;
+    else G.flags.shiveR1Down = true;
     SFX.play('boom'); UI.shake(0.6);
     for (let i = 0; i < 50; i++) particle(b.x, 1.5, b.z, U.pick(['#ff4fd8', '#7af8ff', '#ffe066', '#ffffff']), U.rand(-5, 5), U.rand(2, 7), U.rand(-5, 5), 1.2);
     for (const e of G.enemies) if (e.minion) { e.dead = true; removeActor(e); }
@@ -1141,10 +1432,19 @@ const G = {
     n.x = b.x; n.z = b.z; placeActor(n);
     removeActor(b); scene.remove(b.bubble);
     UI.bossBar(false);
-    SFX.startMusic('end');
+    SFX.startMusic(b.round === 2 ? 'end' : 'world');
     G.boss = null;
-    setTimeout(() => UI.openDialogue('shive', 'defeated'), 900);
+    after(0.9, () => UI.openDialogue('shive', b.round === 2 ? 'defeated' : 'escape'));
   }
+  G.shiveEscape = () => {
+    G.flags.shiveRound1 = true;
+    const n = G.npcs.shive;
+    for (let i = 0; i < 40; i++) particle(n.x, 1.5, n.z, U.pick(['#ff4fd8', '#7af8ff', '#ffe066']), U.rand(-4, 4), U.rand(2, 6), U.rand(-4, 4), 1.2);
+    SFX.play('boom');
+    G.xp(300, true);
+    G.qSet('main', 81);
+    UI.toast('Shive escaped with your costume! Ride back to the pier.', 'warn');
+  };
   G.shiveEnd = (kind) => {
     G.flags.shiveEnd = kind;
     G.give('dog_costume', 1);
@@ -1235,7 +1535,10 @@ const G = {
     const data = { v: 1, px: G.p.x, pz: G.p.z, t: Date.now() };
     for (const k of SAVE_FIELDS) data[k] = G[k];
     // never save mid-boss: put Eli back on the island dock
-    if (G.boss && G.boss.active) { data.px = MAP.isleDock.x + 0.5; data.pz = MAP.isleDock.z; }
+    if (G.boss && G.boss.active) {
+      if (G.boss.round === 2) { data.px = MAP.festival.cx; data.pz = MAP.festival.z0 + 3; }
+      else { data.px = MAP.isleDock.x + 0.5; data.pz = MAP.isleDock.z; }
+    }
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); if (manual) UI.toast('Game saved.', 'item'); }
     catch (e) { if (manual) UI.toast('Could not save (storage blocked).', 'warn'); }
   };
@@ -1254,7 +1557,8 @@ const G = {
   // ======================= start =======================
   let worldStarted = false;
   function startWorld(px, pz) {
-    if (!worldStarted) { buildPylons(); buildNpcs(); initCamps(); worldStarted = true; }
+    if (!worldStarted) { buildPylons(); buildNpcs(); initCamps(); buildSpots(); worldStarted = true; }
+    if (G.flags.gateOpen) WORLD.openGate();
     else {
       // re-apply pylon state from the save
       for (const py of G.pylons) { py.hp = G.pylonHp[py.id] !== undefined ? G.pylonHp[py.id] : py.hpMax; if (py.hp <= 0 && !py.dead) breakPylon(py, true); }
@@ -1287,6 +1591,13 @@ const G = {
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
+    tick(dt);
+    renderer.render(scene, cam);
+    requestAnimationFrame(frame);
+  }
+  // advance the simulation without rendering (used by automated tests)
+  G.debugStep = (n, dt = 1 / 30) => { for (let i = 0; i < n; i++) tick(dt); };
+  function tick(dt) {
     G.time += dt;
     WORLD.update(G.time);
     if (WORLD.anim.barrier) WORLD.anim.barrier.visible = G.pylonsDown() < 3;
@@ -1300,6 +1611,9 @@ const G = {
         updateProjectiles(dt, slow);
         updatePickups(dt);
         updatePylons(dt);
+        updateRace(dt);
+        updateRaid(dt);
+        runTimers();
         slowT -= dt;
         if (slowT <= 0) {
           slowT = 0.5; updateCamps(); syncWorldPickups(); updateDiscovery(); checkQuests(); findInteract();
@@ -1309,6 +1623,7 @@ const G = {
       }
       updateNpcs(dt);
       updateEffects(dt);
+      for (const sp of spots) if (sp.icon) sp.icon.position.set(sp.x, 0.2 + Math.abs(Math.sin(G.time * 2 + sp.x)) * 0.15, sp.z);
       // camera follow
       camTarget.x += (G.p.x - camTarget.x) * Math.min(1, dt * 8);
       camTarget.z += (G.p.z - camTarget.z) * Math.min(1, dt * 8);
@@ -1328,8 +1643,6 @@ const G = {
       cam.position.set(68 + Math.cos(a) * 30 + CAM_OFF.x, CAM_OFF.y, 68 + Math.sin(a) * 30 + CAM_OFF.z);
       cam.lookAt(68 + Math.cos(a) * 30, 0, 68 + Math.sin(a) * 30);
     }
-    renderer.render(scene, cam);
-    requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
   UI.init();

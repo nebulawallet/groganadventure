@@ -5,6 +5,11 @@ An isometric pixel-art RPG built with Three.js, set around Lake Norman, NC.
 The evil hyperpop wizard **Shive** has stolen Eli's dog costume. Help your friends, level up,
 take down Shive's goons and their Bass Pylons, then cross the lake to Shive's Island and get it back.
 
+## What's in it
+- A 200x200 map of Lake Norman: Aldersprings Lane, Mooresville, Davidson & Davidson College, Huntersville & Birkdale Village, Cornelius, Denver, Terrell, Sherrills Ford, Ramsey Creek Park, I-77, Cowans Ford Dam, the Catawba River, Mountain Island Lake and the Dogcore Festival
+- A main story in three acts (the lane, the Bass Pylons and Shive's Spire, then the Dogcore Festival)
+- 18 side quests, a branching dialogue system with S.P.E.C.I.A.L. and skill checks, perks, levelling, fast travel from the map (M)
+
 ## How to play
 Double-click `index.html` (it needs an internet connection the first time, to load Three.js and the fonts).
 
@@ -33,6 +38,7 @@ The game autosaves to your browser.
 - `js/sprites.js` - pixel-art character and item sprites (drawn in code)
 - `js/data.js` - items, weapons, perks, enemies, quests, shops
 - `js/dialogues.js` - every character's dialogue tree
+- `js/dialogues2.js` - Act 3 dialogue, the new characters and the second side quests
 - `js/game.js` - gameplay, combat, AI, boss fight, saving
 - `js/ui.js` - HUD, dialogue box, menus, minimap and full map
 - `js/audio.js` - chiptune music and sound effects

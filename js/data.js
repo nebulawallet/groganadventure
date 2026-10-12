@@ -56,6 +56,26 @@ const DATA = (() => {
     hydro_scooter: { name: 'Hydro-Scooter', type: 'quest', icon: 'hydro_scooter', desc: 'Jack\'s electric water scooter. Use it at Rivergrain\'s Pier.' },
     debate_badge: { name: 'Debate Club Badge', type: 'quest', icon: 'badge', desc: 'From Roby. +10 Speech while carried.' },
     bracelet: { name: "Vea's Friendship Bracelet", type: 'quest', icon: 'bracelet', desc: '+1 Luck and +15 max HP while carried. Wholesome.' },
+
+    // --- expansion: weapons ---
+    bass_cannon: { name: 'Bass Cannon', type: 'weapon', wtype: 'ranged', dmg: 26, rate: 0.8, ap: 12, proj: { speed: 10, size: 0.35, color: 0xff4fd8, life: 0.7, grow: 1.4, pierce: true }, icon: 'bass_cannon', value: 400, desc: "Eski's mixtape-powered speaker gun. Fires a growing wall of bass that pierces goons." },
+    fishing_rod: { name: "Rack's Fishing Rod", type: 'weapon', wtype: 'melee', dmg: 24, rate: 0.55, range: 2.9, arc: 1.4, kb: 9, icon: 'fishing_rod', value: 160, desc: 'Huge reach, huge knockback. Smells of catfish.' },
+    whoopee_cushion: { name: 'Whoopee Cushion', type: 'weapon', wtype: 'thrown', dmg: 18, rate: 1.0, ap: 12, aoe: 3.2, stunAoe: 2.0, proj: { speed: 10, size: 0.3, color: 0xff8ac8, life: 0.8 }, icon: 'whoopee', value: 200, desc: "Rivergrain's secret weapon. Stuns everything nearby with pure comedy." },
+    butterfly_net: { name: 'Butterfly Net', type: 'weapon', wtype: 'melee', dmg: 16, rate: 0.38, range: 2.2, arc: 2.2, kb: 2, stun: 1.0, icon: 'butterfly_net', value: 140, desc: "Squid's net. Every hit stuns goons for a second." },
+    glow_nunchucks: { name: 'Glowstick Nunchucks', type: 'weapon', wtype: 'melee', dmg: 30, rate: 0.3, range: 1.8, arc: 2.4, kb: 4, icon: 'nunchucks', value: 380, desc: "Big Dawg's weapon. Fast, flashy, and very rave." },
+    ghillie_suit: { name: "Fox's Ghillie Suit", type: 'armor', dr: 0.22, sneak: 15, icon: 'ghillie', value: 300, desc: '22% damage resist and +15 Sneak. You are a bush now.' },
+    // --- expansion: gear (passive while carried) ---
+    turbo_sneakers: { name: 'Turbo Sneakers', type: 'gear', icon: 'sneakers', desc: '+10% move speed. Jack fitted them with tiny motors.' },
+    lucky_scarf: { name: "Vea's Lucky Scarf", type: 'gear', icon: 'scarf', desc: '+20 max HP. Knitted with love (and a bit of glitter).' },
+    sinder_amulet: { name: "Sinder's Eye Amulet", type: 'gear', icon: 'amulet', desc: '+1 Perception. It blinks sometimes. Please ignore that.' },
+    council_medal: { name: 'Council Medal', type: 'gear', icon: 'medal', desc: '+10 Speech. Awarded for defeating Ronald Rump in debate.' },
+    // --- expansion: consumables & key items ---
+    big_bone: { name: 'Giant Bone', type: 'use', heal: 100, icon: 'bone', value: 45, desc: 'Restores 100 HP. Absolutely massive.' },
+    vip_pass: { name: 'Dogcore VIP Pass', type: 'quest', icon: 'vip', desc: 'Gets you into the Dogcore Festival. Laminated.' },
+    merch_box: { name: 'Merch Box', type: 'quest', icon: 'merch', desc: "A box of Ninefired's festival merch. Mostly bootleg t-shirts." },
+    mixtape: { name: "Eski's Mixtape", type: 'quest', icon: 'mixtape', desc: '"ESKI - BARS FROM THE LAKE (VOL. 1)". Deliver to friends.' },
+    catfish: { name: 'Legendary Catfish', type: 'quest', icon: 'catfish', desc: 'The one that got away. Until now.' },
+    spirit_candle: { name: 'Spirit Candle', type: 'quest', icon: 'candle', desc: 'It lights itself. That is not normal.' },
   };
 
   for (const k in ITEMS) ITEMS[k].id = k;
@@ -77,12 +97,19 @@ const DATA = (() => {
     { id: 'hater', name: 'Hyperpop Hater', desc: '+30% damage against Shive.', req: (g) => g.level >= 6 },
     { id: 'packrat', name: 'Scooter Kid', desc: '+10% move speed and +20 max AP.', req: (g) => g.level >= 5 && g.skill('tech') >= 30 },
     { id: 'crit', name: 'Critical Barker', desc: 'Critical hits deal x2.5 instead of x2.', req: (g) => g.S.LUK >= 7 && g.level >= 4 },
+    { id: 'bassboost', name: 'Bass Boosted', desc: '+25% damage with thrown and area weapons.', req: (g) => g.level >= 6 },
+    { id: 'scavenger', name: 'Scavenger Pup', desc: 'Goons drop healing items twice as often.', req: (g) => g.S.LUK >= 5 && g.level >= 3 },
+    { id: 'adrenaline', name: 'Adrenaline Zoomies', desc: 'Below 35% HP you deal +25% damage.', req: (g) => g.level >= 7 },
+    { id: 'secondwind', name: 'Second Wind', desc: 'Once every 90 seconds, a hit that would knock you out leaves you on 1 HP instead.', req: (g) => g.level >= 8 && g.S.END >= 5 },
   ];
 
   const ENEMIES = {
     pup: { name: 'Goon Pup', hp: 26, spd: 3.5, dmg: 4, range: 1.15, cd: 1.3, xp: 14, bucks: [2, 8], look: { dog: { color: '#d8a868', belly: '#f8e0b8', ear: 'floppy', full: true, eye: '#e02a2a' } } },
     hound: { name: 'Goon Hound', hp: 62, spd: 2.8, dmg: 9, range: 1.35, cd: 1.5, xp: 28, bucks: [5, 14], look: { dog: { color: '#7a4a2a', belly: '#c89868', ear: 'pointy', full: true, eye: '#ff3a3a' }, extras: ['collar'] } },
     barker: { name: 'Goon Barker', hp: 32, spd: 3.0, dmg: 6, range: 8, cd: 1.9, xp: 24, bucks: [4, 10], ranged: true, look: { dog: { color: '#f0f0f0', belly: '#ffffff', ear: 'floppy', full: true, spots: true, eye: '#e02a2a' } } },
+    raver: { name: 'Goon Raver', hp: 40, spd: 3.4, dmg: 7, range: 8, cd: 1.6, xp: 34, bucks: [6, 14], ranged: true, spread: 3, look: { dog: { color: '#3ad0ff', belly: '#ff8ae8', ear: 'pointy', full: true, eye: '#ffe066' }, extras: ['shades'] } },
+    rottweiler: { name: 'The Bouncer', hp: 420, spd: 3.2, dmg: 20, range: 1.6, cd: 1.1, xp: 220, bucks: [60, 90], charge: true, scale: 1.5, look: { dog: { color: '#1e1a18', belly: '#a8682a', ear: 'pointy', full: true, eye: '#ff3a3a' }, extras: ['chain', 'shades'] } },
+    bigdawg: { name: 'Big Dawg', hp: 480, spd: 2.9, dmg: 22, range: 1.9, cd: 1.2, xp: 300, bucks: [90, 140], charge: true, scale: 1.8, drop: 'glow_nunchucks', look: { dog: { color: '#7a7a82', belly: '#c8c8d0', ear: 'floppy', full: true, eye: '#ff3a3a' }, extras: ['chain', 'shades', 'collar'] } },
     alpha: { name: 'Goon Alpha', hp: 170, spd: 3.1, dmg: 14, range: 1.5, cd: 1.3, xp: 90, bucks: [25, 50], charge: true, scale: 1.25, look: { dog: { color: '#2a2a32', belly: '#5a5a6a', ear: 'pointy', full: true, eye: '#ffd23a' }, extras: ['chain', 'shades'] } },
   };
 
@@ -98,6 +125,10 @@ const DATA = (() => {
     squid: { skin: '#f8d8c0', hair: '#2a1a3a', hairStyle: 'long', shirt: '#3aa8a0', pants: '#4a3a2a', shoes: '#2a2a2a', extras: ['antenna', 'bug', 'blush'] },
     sinder: { skin: '#e0c0a0', hair: '#c8c8c8', hairStyle: 'bald', shirt: '#7a6a4a', pants: '#4a4a4a', shoes: '#2a1a0a', extras: ['beard', 'cardigan', 'cane'], beard: '#d8d8d8' },
     rivergrain: { skin: '#f0c8a0', hair: '#aa5a2a', hairStyle: 'short', shirt: '#ffd23a', pants: '#2a6aff', shoes: '#ff3a3a', hat: 'bucket', hatColor: '#4ad0ff', extras: ['clown', 'star', 'smile'] },
+    ninefired: { skin: '#eab896', hair: '#2a1a10', hairStyle: 'buzz', shirt: '#c8102e', pants: '#c8102e', shoes: '#f8f8f8', hat: 'cap', hatColor: '#1a1a1a', extras: ['stripes', 'chain', 'smile'] },
+    rump: { skin: '#f0a050', hair: '#f8d870', hairStyle: 'swoop', shirt: '#1a1f3a', pants: '#1a1f3a', shoes: '#111111', extras: ['longtie'] },
+    jakub: { skin: '#f2cfb0', hair: '#b8864a', hairStyle: 'short', shirt: '#f4f4f4', pants: '#3a3a4a', shoes: '#4a2a1a', hat: 'cap', hatColor: '#6a6a6a', extras: ['polish', 'mustache', 'smile'] },
+    bouncer: { dog: { color: '#1e1a18', belly: '#a8682a', ear: 'pointy', full: true, eye: '#ff3a3a' }, extras: ['chain', 'shades'] },
     fox: { skin: '#e8b890', hair: '#c86a2a', hairStyle: 'short', shirt: '#5a6a3a', pants: '#4a5a2a', shoes: '#2a2a1a', hat: 'helmet', hatColor: '#4a5a2a', extras: ['camo', 'smile'] },
   };
 
@@ -112,6 +143,10 @@ const DATA = (() => {
     { id: 'fox', name: 'FlowingFox', look: 'fox', x: 119, z: 61, iq: 104, iqNote: 'tactical genius (self-assessed)' },
     { id: 'rivergrain', name: 'Rivergrain', look: 'rivergrain', x: 85, z: 59.8, iq: 99, iqNote: 'jokestar' },
     { id: 'shive', name: 'Shive', look: 'shive', x: 68, z: 70, hidden: true, iq: 140, iqNote: 'he claims 200' },
+    { id: 'ninefired', name: 'Ninefired', look: 'ninefired', x: 162.5, z: 127.2, iq: 109, iqNote: 'proper street smart, innit' },
+    { id: 'rump', name: 'Ronald Rump', look: 'rump', x: 124, z: 27.3, iq: 'HUGE', iqNote: 'he says nobody has a bigger IQ, believe him' },
+    { id: 'jakub', name: 'Jakub', look: 'jakub', x: 174.5, z: 126.8, iq: 126, iqNote: 'certified funny in two languages' },
+    { id: 'bouncer', name: 'The Bouncer', look: 'bouncer', x: 170, z: 157.5, iq: 85, iqNote: 'all muscle', scale: 1.5 },
   ];
 
   // world pickups: shown when cond(g) is true and not yet collected
@@ -142,6 +177,18 @@ const DATA = (() => {
     { id: 'l6', item: 'fizzy_pop', x: 130, z: 92, cond: () => true },
     { id: 'l7', item: 'dog_treat', x: 60, z: 124, cond: () => true },
     { id: 'l8', item: 'pizza', x: 24, z: 96, cond: () => true },
+    { id: 'mb1', item: 'merch_box', x: 170, z: 104, cond: (g) => g.qStage('main') >= 84 },
+    { id: 'mb2', item: 'merch_box', x: 184, z: 104, cond: (g) => g.qStage('main') >= 84 },
+    { id: 'mb3', item: 'merch_box', x: 177, z: 109, cond: (g) => g.qStage('main') >= 84 },
+    { id: 'mb4', item: 'merch_box', x: 188, z: 101, cond: (g) => g.qStage('main') >= 84 },
+    { id: 'sc1', item: 'spirit_candle', x: 55, z: 186, cond: (g) => g.qStage('sinder2') >= 10 },
+    { id: 'sc2', item: 'spirit_candle', x: 64, z: 185, cond: (g) => g.qStage('sinder2') >= 10 },
+    { id: 'sc3', item: 'spirit_candle', x: 50, z: 176, cond: (g) => g.qStage('sinder2') >= 10 },
+    { id: 'l9', item: 'big_bone', x: 160, z: 50, cond: () => true },
+    { id: 'l10', item: 'fizzy_pop', x: 180, z: 126, cond: () => true },
+    { id: 'l11', item: 'big_bone', x: 36, z: 170, cond: () => true },
+    { id: 'l12', item: 'pizza', x: 140, z: 86, cond: () => true },
+    { id: 'l13', item: 'big_bone', x: 166, z: 152, cond: () => true },
   ];
 
   // goon camps
@@ -159,6 +206,14 @@ const DATA = (() => {
     { id: 'cornelius', x: 120, z: 86, r: 4, members: ['pup', 'barker', 'pup'], lvl: 2, respawn: 180 },
     { id: 'meadow', x: 125, z: 63, r: 3, members: ['pup', 'pup'], lvl: 1, respawn: 180 },
     { id: 'parkgoons', x: 34, z: 4, r: 3, members: ['pup', 'barker'], lvl: 2, respawn: 200 },
+    { id: 'warehouse', x: 178, z: 105, r: 4, members: ['bigdawg', 'hound', 'raver', 'pup', 'raver'], lvl: 3, respawn: 0 },
+    { id: 'ramsey', x: 144, z: 84, r: 3, members: ['pup', 'barker', 'hound', 'pup'], lvl: 2, respawn: 240 },
+    { id: 'davidson', x: 182, z: 28, r: 3, members: ['raver', 'pup', 'barker'], lvl: 3, respawn: 200 },
+    { id: 'huntersville', x: 186, z: 112, r: 3, members: ['raver', 'hound', 'raver'], lvl: 3, respawn: 200 },
+    { id: 'terrell', x: 40, z: 186, r: 3, members: ['hound', 'barker', 'raver'], lvl: 3, respawn: 200 },
+    { id: 'milake', x: 120, z: 158, r: 3, members: ['pup', 'raver', 'barker'], lvl: 3, respawn: 200 },
+    { id: 'i77', x: 152, z: 76, r: 3, members: ['raver', 'pup', 'pup'], lvl: 3, respawn: 220 },
+    { id: 'festival', x: 170.5, z: 170, r: 4, members: ['raver', 'raver', 'hound', 'barker', 'alpha'], lvl: 4, when: (g) => g.flags.gateOpen, respawn: 0 },
   ];
 
   const PYLONS = [
@@ -167,8 +222,30 @@ const DATA = (() => {
     { id: 'pylonD', name: 'Dam Bass Pylon', x: 132.5, z: 110.5 },
   ];
 
+  const ZAPPERS = [
+    { id: 'zap1', name: 'Bug Zapper', kind: 'zapper', x: 126.5, z: 61.5 },
+    { id: 'zap2', name: 'Bug Zapper', kind: 'zapper', x: 146.5, z: 90.5 },
+    { id: 'zap3', name: 'Bug Zapper', kind: 'zapper', x: 176.5, z: 58.5 },
+  ];
+  // interaction spots: fishing holes and watchtowers (positions snapped to the shore / tower base in game)
+  const SPOTS = [
+    { id: 'fish_pier', kind: 'fish', at: 'pier' },
+    { id: 'fish_ramsey', kind: 'fish', x: 139, z: 91 },
+    { id: 'fish_mil', kind: 'fish', x: 100, z: 172 },
+    { id: 'tower1', kind: 'tower', x: 186.5, z: 66.5 },
+    { id: 'tower2', kind: 'tower', x: 190.5, z: 148.5 },
+    { id: 'tower3', kind: 'tower', x: 16.5, z: 182 },
+  ];
+  const RACE = { time: 36, cps: [[100.5, 22], [100.5, 39.5], [128, 40.5], [150.5, 40.5], [150.5, 19], [125, 18.8], [101, 18.8]] };
+  const RAID = [
+    ['pup', 'pup', 'pup', 'pup'],
+    ['pup', 'barker', 'barker', 'raver', 'pup'],
+    ['hound', 'hound', 'raver', 'raver', 'alpha'],
+  ];
+
   const SHOPS = {
     eski: { name: "Eski's Dodgy Deals", stock: ['dog_treat', 'pizza', 'fizzy_pop', 'riot_onesie', 'ban_hammer'] },
+    ninefired: { name: "Ninefired's Bargains", stock: ['big_bone', 'pizza', 'fizzy_pop', 'padded_jacket', 'riot_onesie', 'ban_hammer'] },
     jack: { name: 'Volt Valentine Parts & Snacks', stock: ['dog_treat', 'fizzy_pop', 'padded_jacket', 'slingshot'] },
   };
 
@@ -186,6 +263,15 @@ const DATA = (() => {
         60: { text: (g) => `Destroy the Bass Pylons powering Shive's barrier (${g.pylonsDown()}/3). Get a way across the water from Jack Valentine${g.has('hydro_scooter') ? ' (done!)' : ''}.`, target: 'pylon' },
         70: { text: "The barrier is down! Go to Rivergrain's Pier and ride the Hydro-Scooter to Shive's Island.", target: 'pier' },
         80: { text: "Defeat Shive at his Spire and take back your dog costume!", target: 'npc:shive' },
+        81: { text: 'Shive escaped with your costume! Go back across the lake and tell Vea what happened.', target: 'npc:vea' },
+        82: { text: 'Ask Roby Mink where Shive went. He tracks everything online.', target: 'npc:roby' },
+        83: { text: "Find Eski's cousin Ninefired in Birkdale Village (Huntersville, past I-77) and get a festival VIP pass.", target: 'npc:ninefired' },
+        84: { text: (g) => `Raid the Goon Warehouse east of I-77 and recover Ninefired's merch (${pc(g, 'merch_box')}/4). Watch out for Big Dawg.`, target: 'item:merch_box' },
+        85: { text: 'Bring the merch back to Ninefired in Birkdale Village.', target: 'npc:ninefired' },
+        86: { text: 'You have the VIP pass! Rally your friends: report to FlowingFox at his Outpost.', target: 'npc:fox' },
+        87: { text: (g) => `Defend Aldersprings Lane from Shive's goon raid!${g.raidWave ? ` (Wave ${g.raidWave()}/3)` : ''}`, target: [108, 40.5] },
+        88: { text: 'The lane is safe! Head south to the Dogcore Festival in Huntersville and get past the Bouncer.', target: 'npc:bouncer' },
+        89: { text: 'Storm the festival and defeat Shive on the main stage before the midnight bass drop!', target: 'npc:shive' },
         90: { text: 'You got your costume back! Head home and tell Vea.', target: 'npc:vea' },
         100: { text: 'Lake Norman is safe. Eli is a dog again.', done: true },
       },
@@ -254,6 +340,78 @@ const DATA = (() => {
         100: { text: 'The Jokestar of Lake Norman rides again.', done: true },
       },
     },
+    jack2: {
+      name: 'Scooter Rally', giver: 'Jack Valentine',
+      stages: {
+        10: { text: (g) => (g.race ? `RACE! Hit every checkpoint (${g.race.cp}/${RACE.cps.length}) - ${Math.ceil(g.race.t)}s left!` : `Beat Jack's rally course around Mooresville in under ${RACE.time} seconds. Talk to Jack to start.`), target: 'race' },
+        20: { text: 'You won the rally! Tell Jack.', target: 'npc:jack' },
+        100: { text: 'Fastest dog on Lake Norman.', done: true },
+      },
+    },
+    eski2: {
+      name: 'Mixtape Drop', giver: 'Eski',
+      stages: {
+        10: { text: (g) => `Hand out Eski's mixtape to Rack, Squid, Rivergrain and Jack (${['rack', 'squid', 'rivergrain', 'jack'].filter((n) => g.flags['tape_' + n]).length}/4).`, target: 'tapes' },
+        20: { text: 'Tell Eski how his mixtape went down.', target: 'npc:eski' },
+        100: { text: 'Bars delivered. Bare streams.', done: true },
+      },
+    },
+    roby2: {
+      name: 'Council Showdown', giver: 'Roby Mink',
+      stages: {
+        10: { text: 'Beat HOA President Ronald Rump in a debate outside Lake Norman Civic Hall in Mooresville.', target: 'npc:rump' },
+        20: { text: 'Tell Roby you won the debate.', target: 'npc:roby' },
+        100: { text: 'Democracy, again, served.', done: true },
+      },
+    },
+    squid2: {
+      name: 'Zap the Zappers', giver: 'Squid',
+      stages: {
+        10: { text: (g) => `Smash the 3 Bug Zappers the goons set up (${g.zappersDown()}/3): Davidson Meadows, Ramsey Creek Park and Davidson College.`, target: 'zapper' },
+        20: { text: 'Tell Squid the bugs are safe.', target: 'npc:squid' },
+        100: { text: 'The bugs are free.', done: true },
+      },
+    },
+    rack2: {
+      name: 'The One That Got Away', giver: 'Rack',
+      stages: {
+        10: { text: "Catch the Legendary Catfish for Rack. Fish at Rivergrain's Pier, Ramsey Creek or Mountain Island Lake (press E at a fishing spot).", target: 'spot:fish' },
+        20: { text: 'Bring the Legendary Catfish to Rack.', target: 'npc:rack' },
+        100: { text: 'Rack named the catfish "Rocky Steve 2".', done: true },
+      },
+    },
+    sinder2: {
+      name: "Sinder's Seance", giver: 'Sinder',
+      stages: {
+        10: { text: (g) => `Collect 3 Spirit Candles from the graveyard at the Old Terrell Church (${pc(g, 'spirit_candle')}/3).`, target: 'item:spirit_candle' },
+        20: { text: 'Bring the Spirit Candles to Sinder. He is "expecting company".', target: 'npc:sinder' },
+        100: { text: 'The seance happened. Nobody will talk about it.', done: true },
+      },
+    },
+    river2: {
+      name: 'Open Mic Night', giver: 'Rivergrain',
+      stages: {
+        10: { text: 'Beat Jakub, the Polish comedy king, in a joke-off at the Birkdale Comedy Cellar.', target: 'npc:jakub' },
+        20: { text: 'Tell Rivergrain you won the joke-off.', target: 'npc:rivergrain' },
+        100: { text: 'The Jokestar crown stays on Lake Norman.', done: true },
+      },
+    },
+    vea2: {
+      name: 'Picnic at Ramsey Creek', giver: 'Vea',
+      stages: {
+        10: { text: 'Clear the goons out of Ramsey Creek Park (east of Cornelius) so Vea can have a picnic.', target: [144, 84] },
+        20: { text: 'Tell Vea the park is safe.', target: 'npc:vea' },
+        100: { text: 'Best picnic ever.', done: true },
+      },
+    },
+    fox2: {
+      name: 'Operation Overwatch', giver: 'FlowingFox',
+      stages: {
+        10: { text: (g) => `Plant spy cams on 3 watchtowers: Davidson, Huntersville and Terrell (${['tower1', 'tower2', 'tower3'].filter((t) => g.flags['cam_' + t]).length}/3).`, target: 'spot:tower' },
+        20: { text: 'Report back to FlowingFox.', target: 'npc:fox' },
+        100: { text: 'The lake is under surveillance. Responsibly.', done: true },
+      },
+    },
     vea: {
       name: 'Wildflowers for Vea', giver: 'Vea',
       stages: {
@@ -264,5 +422,5 @@ const DATA = (() => {
     },
   };
 
-  return { SPECIAL, SKILLS, ITEMS, PERKS, ENEMIES, LOOKS, NPCS, PICKUPS, CAMPS, PYLONS, SHOPS, QUESTS };
+  return { SPECIAL, SKILLS, ITEMS, PERKS, ENEMIES, LOOKS, NPCS, PICKUPS, CAMPS, PYLONS, ZAPPERS, SPOTS, RACE, RAID, SHOPS, QUESTS };
 })();

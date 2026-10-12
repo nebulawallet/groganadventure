@@ -1,7 +1,7 @@
 // ---------- Lake Norman map generation (pure data, no THREE) ----------
 // Grid: x grows to screen-right/down, z grows to screen-left/down.
 // Screen "north" (up) is small x+z. Tile (x,z) covers world [x,x+1) x [z,z+1).
-const MAPW = 140;
+const MAPW = 200;
 const T = { WATER: 0, GRASS: 1, SAND: 2, ROAD: 3, DIRT: 4, PAVE: 5, BRIDGE: 6, DOCK: 7, FOREST: 8, MEADOW: 9, ISLAND: 10, DAM: 11, FLOOR: 12 };
 
 const LAKE_SEGS = [
@@ -12,8 +12,11 @@ const LAKE_SEGS = [
   [28, 26, 46, 13, 4, 3.5], [46, 13, 57, 9, 3.5, 2.5],
   [55, 55, 38, 68, 4.5, 4], [38, 68, 22, 84, 4, 3.5], [22, 84, 11, 99, 3.5, 2.5],
   [82, 82, 66, 98, 4.5, 4], [66, 98, 57, 115, 4, 2.5],
-  [112, 112, 126, 101, 3, 2],
+  [112, 112, 126, 101, 3, 2.5], [126, 101, 140, 93, 2.5, 2],
+  // Catawba River below the dam, flowing into Mountain Island Lake
+  [131, 131, 138, 148, 2.5, 3], [138, 148, 128, 164, 3, 3.5], [128, 164, 117, 173, 3.5, 5],
 ];
+const MIL = { x: 108, z: 180, r: 11 };
 const BASIN = { x: 68, z: 68, r: 17.5 };
 const ISLE = { x: 68, z: 68, r: 7.5 };
 
@@ -38,6 +41,7 @@ function genWorld() {
       best = Math.min(best, r.d - rad);
     }
     best = Math.min(best, Math.hypot(cx - BASIN.x, cz - BASIN.z) - BASIN.r);
+    best = Math.min(best, Math.hypot(cx - MIL.x, cz - MIL.z) - MIL.r);
     best += (U.fbm(x * 0.15, z * 0.15) - 0.5) * 3.2;
     // island
     const di = Math.hypot(cx - ISLE.x, cz - ISLE.z) - ISLE.r + (U.fbm(x * 0.3 + 9, z * 0.3) - 0.5) * 1.5;
@@ -79,6 +83,17 @@ function genWorld() {
   clearArea(66, 9, 14, 14, T.DIRT); // scrapyard
   clearArea(94, 74, 14, 13, T.DIRT); // doghouse camp
   clearArea(16, 42, 14, 12, T.DIRT); // denver goon camp
+  // --- expansion: Davidson, Huntersville, Birkdale, festival, Terrell ---
+  clearArea(152, 8, 46, 40, T.GRASS);  // Davidson
+  fill(157, 44, 26, 16, T.PAVE);       // college quad
+  clearArea(137, 80, 14, 11, T.MEADOW); // Ramsey Creek Park
+  clearArea(166, 89, 27, 23, T.DIRT);  // goon warehouse yard
+  clearArea(152, 115, 42, 30, T.GRASS); // Birkdale / Huntersville
+  fill(153, 125, 38, 5, T.PAVE);       // Birkdale plaza
+  fill(152, 160, 37, 35, T.DIRT);      // festival grounds
+  clearArea(26, 156, 34, 16, T.GRASS); // Terrell
+  clearArea(50, 172, 20, 20, T.GRASS); // church grounds
+  for (const [tx, tz] of [[186, 64], [190, 146], [16, 184]]) clearArea(tx - 3, tz - 3, 7, 7, T.DIRT); // watchtowers
 
   // --- roads ---
   road(26, 40, 130, 40);            // Brawley Rd -> Aldersprings Lane (crosses N bridge)
@@ -99,13 +114,31 @@ function genWorld() {
   road(72, 102, 72, 126, T.DIRT);
   road(26, 126, 120, 126, T.DIRT);  // southern trail to the dam
   road(26, 100, 26, 126, T.DIRT);
+  road(130, 40, 190, 40);           // Griffith St to Davidson
+  road(130, 18, 190, 18);           // Mooresville -> Davidson
+  road(150, 2, 150, 196);           // I-77
+  road(165, 18, 165, 44);           // Davidson Main St -> college
+  road(140, 42, 140, 84, T.DIRT);   // Ramsey Creek Park path
+  road(133, 100, 150, 100);
+  road(150, 100, 190, 100);         // to the warehouse
+  road(150, 130, 190, 130);         // Huntersville main road
+  road(169, 130, 169, 159);         // festival approach
+  road(132, 121, 132, 140);         // dam -> south (bridges the river)
+  road(132, 140, 150, 140);
+  road(26, 126, 26, 190, T.DIRT);   // west trail to Terrell
+  road(10, 168, 100, 168, T.DIRT);  // Terrell Rd
+  road(72, 126, 72, 168, T.DIRT);
+  road(100, 168, 100, 176, T.DIRT); // Mountain Island Lake path
+  road(186, 40, 186, 64, T.DIRT);   // watchtower paths
+  road(186, 130, 186, 146, T.DIRT);
+  road(16, 168, 16, 184, T.DIRT);
 
   // --- Cowans Ford Dam: concrete wall across the channel's south end ---
   for (let z = 112; z < W; z++) for (let x = 112; x < W; x++) {
     const along = x + z - 252;
     const across = x - z;
     if (Math.abs(along) <= 1.5 && Math.abs(across) <= 16) set(x, z, T.DAM);
-    else if (along > 1.5 && Math.abs(across) <= 14 && get(x, z) === T.WATER) set(x, z, T.SAND);
+    else if (along > 1.5 && along < 7 && Math.abs(across) <= 14 && get(x, z) === T.WATER) set(x, z, T.SAND);
   }
   // connect dam ends to trails
   road(118, 126, 126, 126, T.DIRT);
@@ -162,6 +195,39 @@ function genWorld() {
   B({ id: 'd1', x: 30, z: 84, w: 5, d: 4, h: 2.3, wall: '#c8b090', roof: '#6a3a2a' });
   B({ id: 'd2', x: 30, z: 92, w: 5, d: 4, h: 2.3, wall: '#a0b0a0', roof: '#2a3a4a' });
 
+  // Davidson
+  B({ id: 'dh1', x: 155, z: 22, w: 5, d: 4, h: 2.3, wall: '#e0d0b8', roof: '#6a3a2a' });
+  B({ id: 'dh2', x: 172, z: 22, w: 5, d: 4, h: 2.3, wall: '#c0d0e0', roof: '#3a3a5a' });
+  B({ id: 'dh3', x: 180, z: 30, w: 5, d: 4, h: 2.3, wall: '#d8c8d8', roof: '#5a2a3a' });
+  B({ id: 'dh4', x: 155, z: 32, w: 5, d: 4, h: 2.3, wall: '#c8d8b0', roof: '#4a5a2a' });
+  B({ id: 'college1', x: 159, z: 46, w: 8, d: 5, h: 3.2, wall: '#a04a36', roof: '#2e2e36', label: 'Davidson College' });
+  B({ id: 'college2', x: 172, z: 46, w: 8, d: 5, h: 3.2, wall: '#a85a40', roof: '#2e2e36' });
+  B({ id: 'chapel', x: 166, z: 54, w: 6, d: 5, h: 3.2, wall: '#e8e0d0', roof: '#3a4a5a', kind: 'church' });
+  // Goon warehouse
+  B({ id: 'warehouse', x: 172, z: 91, w: 12, d: 7, h: 3.8, wall: '#6a6a72', roof: '#3a3a40', kind: 'warehouse', label: 'Goon Warehouse' });
+  // Birkdale Village (fronts face the plaza)
+  B({ id: 'b1', x: 155, z: 119, w: 6, d: 5, h: 2.6, wall: '#c8a078', roof: '#5a3a2a' });
+  B({ id: 'nf_shop', x: 163, z: 119, w: 6, d: 5, h: 2.6, wall: '#8a5a9e', roof: '#2a2a3a', label: "Ninefired's Bargains" });
+  B({ id: 'comedy', x: 171, z: 119, w: 7, d: 5, h: 2.8, wall: '#3a2a4a', roof: '#1a1a2a', label: 'Birkdale Comedy Cellar' });
+  B({ id: 'b4', x: 180, z: 119, w: 6, d: 5, h: 2.6, wall: '#a8c8b8', roof: '#3a5a4a' });
+  // Huntersville
+  B({ id: 'hv1', x: 155, z: 135, w: 5, d: 4, h: 2.3, wall: '#d8c0a0', roof: '#6a4a2a' });
+  B({ id: 'hv2', x: 162, z: 135, w: 5, d: 4, h: 2.3, wall: '#b8c8d8', roof: '#3a4a6a' });
+  B({ id: 'hv3', x: 175, z: 135, w: 5, d: 4, h: 2.3, wall: '#e0d8c0', roof: '#5a2a2a' });
+  B({ id: 'hv4', x: 183, z: 135, w: 5, d: 4, h: 2.3, wall: '#c8d8c0', roof: '#2a4a3a' });
+  // Terrell
+  B({ id: 't1', x: 30, z: 160, w: 5, d: 4, h: 2.3, wall: '#c8b090', roof: '#5a3a2a' });
+  B({ id: 't2', x: 38, z: 160, w: 5, d: 4, h: 2.3, wall: '#b0b8a0', roof: '#3a3a3a' });
+  B({ id: 't3', x: 46, z: 160, w: 5, d: 4, h: 2.3, wall: '#d0c0b0', roof: '#4a2a3a' });
+  B({ id: 'church', x: 58, z: 175, w: 5, d: 7, h: 3.0, wall: '#d8d0c0', roof: '#4a3a3a', kind: 'church', label: 'Old Terrell Church' });
+  // Dogcore Festival: fenced arena, gate on the north side, stage at the south end
+  B({ id: 'stage', x: 153, z: 169, w: 6, d: 18, h: 1.2, wall: '#2a1a3a', roof: '#ff4fd8', kind: 'stage' });
+  const festival = { x0: 152, z0: 160, x1: 188, z1: 194, gate: [[169, 160], [170, 160]], cx: 168, cz: 178, shive: { x: 161, z: 178 }, bouncer: { x: 170, z: 157.5 } };
+  for (let x = festival.x0; x <= festival.x1; x++) for (const z of [festival.z0, festival.z1]) solid[I(x, z)] = 1;
+  for (let z = festival.z0; z <= festival.z1; z++) for (const x of [festival.x0, festival.x1]) solid[I(x, z)] = 1;
+  const towers = [{ x: 186, z: 64 }, { x: 190, z: 146 }, { x: 16, z: 184 }];
+  for (const tw of towers) solid[I(tw.x, tw.z)] = 1;
+
   // Shive's Spire (solid core on island)
   const spire = { x: ISLE.x - 1, z: ISLE.z - 3 };
   for (let z = spire.z - 1; z <= spire.z + 1; z++) for (let x = spire.x - 1; x <= spire.x + 1; x++) solid[I(x, z)] = 1;
@@ -190,11 +256,24 @@ function genWorld() {
     { id: 'nbridge', name: 'Brawley Bridge', x: 40, z: 41, r: 6, map: false },
     { id: 'sbridge', name: 'NC-73 Bridge', x: 99, z: 101, r: 6, map: false },
     { id: 'southwoods', name: 'Catawba Woods', x: 45, z: 120, r: 14 },
+    { id: 'davidson', name: 'Davidson', x: 172, z: 28, r: 16 },
+    { id: 'college', name: 'Davidson College', x: 170, z: 51, r: 8 },
+    { id: 'ramsey', name: 'Ramsey Creek Park', x: 143, z: 86, r: 8 },
+    { id: 'warehouse', name: 'Goon Warehouse', x: 178, z: 104, r: 9 },
+    { id: 'birkdale', name: 'Birkdale Village', x: 171, z: 127, r: 12 },
+    { id: 'huntersville', name: 'Huntersville', x: 172, z: 141, r: 12 },
+    { id: 'festival', name: 'Dogcore Festival', x: 170, z: 172, r: 16 },
+    { id: 'river', name: 'Catawba River', x: 135, z: 142, r: 8 },
+    { id: 'mil', name: 'Mountain Island Lake', x: 106, z: 178, r: 14 },
+    { id: 'terrell', name: 'Terrell', x: 40, z: 164, r: 12 },
+    { id: 'church', name: 'Old Terrell Church', x: 60, z: 180, r: 7 },
   ];
 
   // reserve key areas from trees
   [[91, 39, 3], [100, 16, 6], [119, 62, 8], [84, 61, 4], [101, 80, 7], [72, 15, 7], [22, 47, 6], [40, 6, 3],
-   [12, 62, 5], [132, 110, 5], [126, 126, 3], [68, 68, 7], [124, 64, 4]].forEach(([x, z, r]) => reserve(x, z, r));
+   [12, 62, 5], [132, 110, 5], [126, 126, 3], [68, 68, 7], [124, 64, 4],
+   [144, 86, 5], [178, 104, 7], [171, 127, 6], [170, 157, 4], [60, 182, 7], [138, 66, 3], [176, 56, 3],
+   [186, 64, 3], [190, 146, 3], [16, 184, 3], [140, 93, 3], [98, 180, 3]].forEach(([x, z, r]) => reserve(x, z, r));
   for (const b of buildings) reserve(b.x + (b.w >> 1), b.z + (b.d >> 1), (Math.max(b.w, b.d) >> 1) + 1);
 
   const trees = [], rocks = [], flowers = [], bushes = [];
@@ -215,8 +294,12 @@ function genWorld() {
     else if ((t === T.GRASS || t === T.FOREST) && h > 0.93 && !nearRoad) bushes.push({ x, z });
     else if (t === T.ISLAND && h < 0.06) flowers.push({ x, z, c: 5 });
   }
+  // nothing grows inside the festival
+  for (let i = trees.length - 1; i >= 0; i--) { const t = trees[i]; if (t.x > festival.x0 && t.x < festival.x1 && t.z > festival.z0 && t.z < festival.z1) { solid[I(t.x, t.z)] = 0; trees.splice(i, 1); } }
+  // gate starts closed
+  for (const [gx, gz] of festival.gate) solid[I(gx, gz)] = 1;
 
-  return { W, tiles, solid, lakeVal, buildings, trees, rocks, flowers, bushes, LOCS, pier, isleDock, spire, ISLE, BASIN };
+  return { W, tiles, solid, lakeVal, buildings, trees, rocks, flowers, bushes, LOCS, pier, isleDock, spire, ISLE, BASIN, MIL, festival, towers };
 }
 
 if (typeof module !== 'undefined') module.exports = { genWorld, T, MAPW };

@@ -204,7 +204,7 @@ const DLG = (() => {
       },
       doghouse_brief: {
         text: "Goon camp in the woods south-west of here. They've built KENNELS, Eli. Little goon kennels. It's an insult to real dogs everywhere. Clear it out and I'll give you my Paintball Marker and my spare vest.",
-        on: (g) => { if (g.qStage('fox') === 0) g.qSet('fox', 10); },
+        on: (g) => { if (g.qStage('fox') === 0) g.qSet('fox', 10); g.forceCamp('doghouse'); },
         choices: [{ t: 'Consider it done.', next: null }],
       },
       doghouse_done: {

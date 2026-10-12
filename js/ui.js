@@ -5,6 +5,7 @@ const UI = (() => {
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   let panel = null; // current open panel name
   let mapImg = null;
+  let mapHits = [];
   const floaters = [];
   const iconURL = {};
   const icon = (name) => { if (!iconURL[name]) iconURL[name] = SPR.icon(name).toDataURL(); return iconURL[name]; };
@@ -149,6 +150,13 @@ const UI = (() => {
       } else lab.style.display = 'none';
     }
   }
+  function raceTimer(t, cp, n) {
+    const el2 = $('racetimer');
+    if (t === null || t === undefined) { el2.classList.add('hidden'); return; }
+    el2.classList.remove('hidden');
+    el2.innerHTML = `<div class="rt">${Math.max(0, t).toFixed(1)}s</div><div class="rc">CHECKPOINT ${Math.min(cp, n - 1)}/${n - 1}</div>`;
+    el2.classList.toggle('low', t < 8);
+  }
   function bossBar(show, frac, shielded, whistle) {
     const b = $('bossbar');
     b.classList.toggle('hidden', !show);
@@ -255,10 +263,12 @@ const UI = (() => {
     drawMap(ctx, size / 2, size / 2, s, W / 2, W / 2, true);
     // location labels
     ctx.textAlign = 'center';
+    mapHits = [];
     for (const L of WORLD.map.LOCS) {
       if (L.map === false) continue;
       const q = mapPt(L.x, L.z, size / 2, size / 2, s, W / 2, W / 2);
       const known = G.discovered[L.id];
+      if (known && L.id !== 'island') mapHits.push({ id: L.id, x: q.x, y: q.y - 14 });
       ctx.font = known ? '18px VT323, monospace' : '15px VT323, monospace';
       ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.8)';
       const label = known ? L.name : '???';
@@ -270,7 +280,17 @@ const UI = (() => {
     ctx.font = '18px VT323, monospace'; ctx.fillStyle = '#ccc';
     const legend = [['#ffffff', 'Eli (you)'], ['#5ab8ff', 'Friends'], ['#ffe066', 'Quest target'], ['#ff4fd8', 'Bass Pylon'], ['#fff59a', 'Quest item'], ['#ff3a3a', 'Goons nearby']];
     legend.forEach(([c2, t], i) => { ctx.fillStyle = c2; ctx.fillRect(16, size - 20 - (legend.length - i) * 20, 10, 10); ctx.fillStyle = '#ddd'; ctx.fillText(t, 32, size - 11 - (legend.length - i) * 20); });
-    ctx.textAlign = 'right'; ctx.fillStyle = '#aaa'; ctx.fillText('[M] / [ESC] close', size - 16, size - 14);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#aaa'; ctx.fillText(G.touch.on ? 'Tap a place name to fast travel' : 'Click a place name to fast travel · [M] close', size - 16, size - 14);
+    c.onclick = (e) => {
+      const r = c.getBoundingClientRect();
+      const mx = (e.clientX - r.left) * (c.width / r.width), my = (e.clientY - r.top) * (c.height / r.height);
+      let best = null, bd = 34;
+      for (const h of mapHits) { const d = Math.hypot(h.x - mx, h.y - my); if (d < bd) { bd = d; best = h; } }
+      if (!best) return;
+      e.stopPropagation();
+      closePanel();
+      G.fastTravel(best.id);
+    };
   }
 
   // ======================= dialogue =======================
@@ -448,7 +468,7 @@ const UI = (() => {
     openMenu('INVENTORY', (body) => {
       const wrap = el('div', 'invwrap');
       const list = el('div', 'invlist');
-      const groups = [['weapon', 'WEAPONS'], ['armor', 'APPAREL'], ['use', 'AID'], ['quest', 'KEY ITEMS']];
+      const groups = [['weapon', 'WEAPONS'], ['armor', 'APPAREL'], ['gear', 'GEAR (always active)'], ['use', 'AID'], ['quest', 'KEY ITEMS']];
       const eq = (id) => G.equipped.melee === id || G.equipped.ranged === id || G.equipped.armor === id;
       const owned = Object.keys(G.inv).filter((id) => G.inv[id] > 0);
       if (!owned.includes('fists')) owned.unshift('fists');
@@ -521,6 +541,10 @@ const UI = (() => {
       if (!G.flags.metEski) avail.push('Eski hangs about at The Estate in Mooresville.');
       if (!G.flags.metRiver) avail.push('Rivergrain does comedy on his pier south of the lane.');
       if (!G.flags.metSquid || !G.flags.metRack || !G.flags.metSinder || !G.flags.metRoby) avail.push('Your friends on Aldersprings Lane might need help too.');
+      const second = [['vea', 'vea2', 'Vea'], ['fox', 'fox2', 'FlowingFox'], ['jack', 'jack2', 'Jack'], ['eski', 'eski2', 'Eski'], ['squid', 'squid2', 'Squid'], ['rack', 'rack2', 'Rack'], ['sinder', 'sinder2', 'Sinder'], ['river', 'river2', 'Rivergrain']];
+      for (const [a, b, who] of second) if (G.qStage(a) === 100 && G.qStage(b) === 0) avail.push(`${who} has another job for you.`);
+      if (G.qStage('main') >= 60 && G.qStage('roby2') === 0) avail.push('Roby Mink is furious about something the HOA president said.');
+      if (!G.discovered.birkdale) avail.push('People say Birkdale Village in Huntersville has the best shops on the lake.');
       if (avail.length) {
         wrap.appendChild(el('div', 'ghead', 'RUMOURS'));
         for (const a of avail) wrap.appendChild(el('div', 'qrow rumour', esc(a)));
@@ -704,5 +728,5 @@ const UI = (() => {
     return false;
   }
 
-  return { init, toast, floatText, updateFloaters, prompt, discover, setLocation, shake, flash, fade, hud, bossBar, minimap, openMap, openDialogue, openChar, openInv, openQuests, openShop, openPause, title, death, showEnding, handleKey };
+  return { init, raceTimer, toast, floatText, updateFloaters, prompt, discover, setLocation, shake, flash, fade, hud, bossBar, minimap, openMap, openDialogue, openChar, openInv, openQuests, openShop, openPause, title, death, showEnding, handleKey };
 })();

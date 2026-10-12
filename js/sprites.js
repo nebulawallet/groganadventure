@@ -84,6 +84,8 @@ const SPR = (() => {
     if (has('camo')) { px(g, 13, by(16), '#4a5a2a'); px(g, 16, by(18), '#4a5a2a'); px(g, 14, by(20), '#2a3a1a'); px(g, 17, by(16), '#6a7a3a'); }
     if (has('stripes')) { rect(g, 12, by(16), 1, 6, '#eeeeee'); }
     if (has('tie')) { rect(g, 16, by(16), 1, 5, '#a32a2a'); }
+    if (has('polish')) { rect(g, 12, by(19), 7, 3, '#dc143c'); rect(g, 12, by(19), 1, 3, '#a80f2c'); }
+    if (has('longtie')) { rect(g, 14, by(15), 3, 2, '#f4f4f4'); rect(g, 13, by(16), 1, 3, '#2a3050'); rect(g, 17, by(16), 1, 3, '#2a3050'); }
     if (has('cardigan')) { rect(g, 15, by(15), 1, 8, S(torsoC, 0.6)); px(g, 16, by(17), '#ddd'); px(g, 16, by(19), '#ddd'); }
     if (has('heart')) { px(g, 14, by(17), '#ff5a8a'); px(g, 16, by(17), '#ff5a8a'); rect(g, 14, by(18), 3, 1, '#ff5a8a'); px(g, 15, by(19), '#ff5a8a'); }
     if (has('bug')) { rect(g, 14, by(17), 3, 2, '#3a3a3a'); px(g, 13, by(18), '#3a3a3a'); px(g, 17, by(18), '#3a3a3a'); px(g, 15, by(17), '#e04040'); }
@@ -91,6 +93,7 @@ const SPR = (() => {
     if (has('bolt')) { px(g, 16, by(16), '#ffe066'); px(g, 15, by(17), '#ffe066'); rect(g, 15, by(18), 2, 1, '#ffe066'); px(g, 16, by(19), '#ffe066'); px(g, 15, by(20), '#ffe066'); }
     // belt
     if (!d.robe && !d.dog) rect(g, 12, by(22), 7, 1, S(pants, 0.6));
+    if (has('longtie')) { rect(g, 15, by(16), 2, 7, '#d0202a'); rect(g, 15, by(23), 2, 1, '#a01820'); px(g, 15, by(16), '#ff4a4a'); }
     // chain (bling)
     if (has('chain')) { rect(g, 13, by(15 + short), 5, 1, '#ffd23a'); px(g, 13, by(16), '#ffd23a'); px(g, 17, by(16), '#ffd23a'); rect(g, 14, by(17), 3, 1, '#ffd23a'); px(g, 15, by(18), '#fff59a'); }
     // front arm
@@ -145,11 +148,16 @@ const SPR = (() => {
         rect(g, 12, by(hy + 1), 2, 3, hc); px(g, 14, by(hy + 1), hc);
       } else if (st === 'buzz') {
         rect(g, 12, by(hy), 8, 1, hc); rect(g, 12, by(hy + 1), 2, 2, hc);
+      } else if (st === 'swoop') {
+        rect(g, 11, by(hy - 3), 10, 3, hc); rect(g, 12, by(hy - 4), 7, 1, hc);
+        rect(g, 14, by(hy), 7, 1, hc); px(g, 21, by(hy), hc); px(g, 21, by(hy + 1), hc);
+        rect(g, 11, by(hy), 3, 4, hc); rect(g, 13, by(hy - 3), 6, 1, S(hc, 1.15));
       } else if (st === 'hyper') {
         rect(g, 12, by(hy), 8, 2, '#ff4fd8'); rect(g, 11, by(hy + 1), 3, 4, '#7af8ff'); px(g, 20, by(hy + 1), '#ff4fd8'); px(g, 11, by(hy + 5), '#ff4fd8');
       }
       if (has('beard')) { rect(g, 14, by(hy + 5), 6, 4, d.beard || hc); px(g, 18, by(hy + 6), S(d.beard || hc, 0.6)); }
       if (has('neckbeard')) { rect(g, 14, by(hy + 7), 6, 2, hc); }
+      if (has('mustache')) { rect(g, 16, by(hy + 5), 4, 1, d.hair || '#6a4a2a'); px(g, 20, by(hy + 6), d.hair || '#6a4a2a'); }
       if (has('glasses')) { rect(g, 14, by(hy + 3), 6, 1, '#222'); px(g, 15, by(hy + 4), '#9ad8ff'); px(g, 18, by(hy + 4), '#9ad8ff'); }
       if (has('bow')) { rect(g, 12, by(hy - 2), 2, 2, '#ff6fa8'); rect(g, 15, by(hy - 2), 2, 2, '#ff6fa8'); px(g, 14, by(hy - 1), '#d03a78'); }
       if (has('antenna')) { px(g, 14, by(hy - 2), '#222'); px(g, 13, by(hy - 3), '#222'); px(g, 13, by(hy - 4), '#5cf06a'); px(g, 18, by(hy - 2), '#222'); px(g, 19, by(hy - 3), '#222'); px(g, 19, by(hy - 4), '#5cf06a'); rect(g, 12, by(hy - 1), 8, 1, '#5cf06a'); }
@@ -233,6 +241,21 @@ const SPR = (() => {
       case 'bracelet': for (let a = 0; a < 16; a++) { const t = (a / 16) * Math.PI * 2; P(8 + Math.round(Math.cos(t) * 5), 8 + Math.round(Math.sin(t) * 4), a % 3 ? '#ff8ac8' : '#7af8ff'); } break;
       case 'dog_costume': R(4, 4, 8, 10, '#c8884a'); R(3, 2, 3, 3, '#8a5a2a'); R(10, 2, 3, 3, '#8a5a2a'); R(6, 8, 4, 5, '#f0d0a0'); P(6, 6, '#111'); P(9, 6, '#111'); break;
       case 'bucks': R(4, 4, 8, 8, '#ffd23a'); R(5, 5, 6, 6, '#ffe88a'); R(7, 6, 2, 4, '#c89a1a'); break;
+      case 'bass_cannon': R(2, 6, 9, 5, '#2a2a2a'); R(10, 4, 4, 9, '#3a3a3a'); R(11, 6, 2, 5, '#ff4fd8'); P(12, 8, '#7af8ff'); R(4, 11, 2, 3, '#555'); R(3, 7, 5, 1, '#ffd23a'); break;
+      case 'fishing_rod': for (let i = 0; i < 12; i++) P(2 + i, 13 - i, i < 3 ? '#4a2a1a' : '#8a6a3a'); for (let i = 0; i < 8; i++) P(13, 2 + i, '#dddddd'); R(12, 10, 3, 2, '#ff3a3a'); R(3, 11, 2, 2, '#888'); break;
+      case 'whoopee': R(3, 5, 10, 7, '#ff8ac8'); R(4, 4, 8, 1, '#ffb8e0'); R(11, 9, 4, 2, '#e85aa8'); P(6, 7, '#ffffff'); break;
+      case 'butterfly_net': for (let i = 0; i < 8; i++) P(3 + i, 13 - i, '#8a6a3a'); R(9, 2, 6, 6, '#e8f8ff'); R(9, 2, 6, 1, '#888'); P(11, 4, '#5cf06a'); P(13, 5, '#ffe066'); break;
+      case 'nunchucks': R(2, 3, 3, 6, '#ff4fd8'); R(11, 7, 3, 6, '#7af8ff'); for (let i = 0; i < 6; i++) P(5 + i, 6 + (i >> 1), '#cccccc'); break;
+      case 'ghillie': R(4, 3, 8, 11, '#4a6a2a'); P(5, 5, '#6a8a3a'); P(9, 4, '#2a4a1a'); P(7, 9, '#7a9a4a'); P(10, 11, '#2a4a1a'); R(3, 6, 1, 4, '#5a7a2a'); R(12, 6, 1, 4, '#5a7a2a'); break;
+      case 'sneakers': R(2, 8, 11, 4, '#ff3a3a'); R(2, 11, 12, 2, '#ffffff'); R(5, 6, 4, 2, '#ff3a3a'); P(8, 9, '#ffe066'); P(10, 9, '#ffe066'); R(12, 12, 3, 1, '#7af8ff'); break;
+      case 'scarf': R(3, 4, 10, 4, '#ff8ac8'); R(9, 8, 3, 6, '#ff8ac8'); P(4, 5, '#ffffff'); P(7, 6, '#ffffff'); P(10, 11, '#ffffff'); R(9, 13, 3, 1, '#d03a78'); break;
+      case 'amulet': for (let i = 0; i < 6; i++) { P(4 + i, 2 + (i >> 1), '#c8a050'); P(11 - i, 2 + (i >> 1), '#c8a050'); } R(5, 6, 6, 6, '#3a2a4a'); R(6, 7, 4, 4, '#ffffff'); R(7, 8, 2, 2, '#5cf06a'); P(7, 8, '#111'); break;
+      case 'medal': R(5, 2, 2, 5, '#3a6aff'); R(9, 2, 2, 5, '#d02a2a'); R(4, 7, 8, 7, '#ffd23a'); R(5, 8, 6, 5, '#ffe88a'); P(7, 10, '#c89a1a'); P(8, 10, '#c89a1a'); break;
+      case 'vip': R(2, 4, 12, 8, '#1a1a2a'); R(3, 5, 10, 6, '#ff4fd8'); R(4, 6, 3, 1, '#ffe066'); R(4, 8, 8, 1, '#7af8ff'); R(7, 2, 2, 2, '#888'); break;
+      case 'merch': R(2, 5, 12, 9, '#c8a068'); R(2, 5, 12, 2, '#a8804a'); R(6, 8, 4, 3, '#ff4fd8'); P(7, 9, '#ffffff'); break;
+      case 'mixtape': R(2, 4, 12, 8, '#2a2a3a'); R(3, 5, 10, 3, '#ffe066'); R(4, 9, 2, 2, '#888'); R(10, 9, 2, 2, '#888'); R(6, 10, 4, 1, '#555'); break;
+      case 'catfish': R(2, 6, 10, 5, '#7a8a6a'); R(11, 5, 4, 7, '#6a7a5a'); P(4, 7, '#111'); R(1, 8, 2, 1, '#aaa'); R(1, 10, 2, 1, '#aaa'); R(4, 10, 6, 1, '#a8b898'); break;
+      case 'candle': R(6, 6, 4, 8, '#f0f0e0'); R(6, 13, 4, 1, '#c8c8b0'); R(7, 3, 2, 3, '#7af8ff'); P(7, 2, '#ffffff'); P(8, 4, '#3a8aff'); break;
       case 'bone': R(4, 7, 8, 2, '#f0f0e0'); R(3, 6, 2, 2, '#f0f0e0'); R(3, 8, 2, 2, '#f0f0e0'); R(11, 6, 2, 2, '#f0f0e0'); R(11, 8, 2, 2, '#f0f0e0'); break;
       default: R(4, 4, 8, 8, '#ff00ff');
     }

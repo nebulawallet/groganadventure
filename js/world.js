@@ -170,6 +170,7 @@ const WORLD = (() => {
     buildCamps(scene);
     buildIsland(scene);
     buildDam(scene);
+    buildExpansion(scene);
     return anim;
   }
 
@@ -216,6 +217,40 @@ const WORLD = (() => {
         sc.position.set(2.5 + i * 0.6, 0, b.d / 2 + 0.8);
         g.add(sc);
       }
+    } else if (b.kind === 'warehouse') {
+      const r = addBox(g, b.w + 0.2, 0.3, b.d + 0.2, 0, b.h + 0.15, 0, lam(b.roof));
+      void r;
+      addBox(g, 3.2, 2.4, 0.08, 0, 1.2, b.d / 2, lam(0x8a8a90));
+      for (let i = 0; i < 7; i++) addBox(g, 3.2, 0.04, 0.1, 0, 0.2 + i * 0.32, b.d / 2 + 0.01, lam(0x5a5a60));
+      const sign = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.7, 0.1), new THREE.MeshBasicMaterial({ map: textTex('GOON HQ', '#ff4fd8', '#1a1a22', 96, 20) }));
+      sign.position.set(0, b.h - 0.6, b.d / 2 + 0.06); g.add(sign);
+      for (let i = 0; i < 4; i++) addBox(g, 0.7, 0.7, 0.7, -b.w / 2 + 1 + i * 0.9, 0.35, b.d / 2 + 1.4, lam(0x8a6a3a));
+    } else if (b.kind === 'church') {
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 4), lam(b.roof));
+      roof.rotation.y = Math.PI / 4;
+      roof.scale.set((b.w / Math.SQRT2) * 1.1, b.h * 0.7, (b.d / Math.SQRT2) * 1.1);
+      roof.position.y = b.h + (b.h * 0.7) / 2; g.add(roof);
+      addBox(g, 1.2, b.h + 2.2, 1.2, 0, (b.h + 2.2) / 2, b.d / 2 - 0.6, lam(b.wall));
+      const spire = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 4), lam(b.roof)); spire.rotation.y = Math.PI / 4; spire.position.set(0, b.h + 3.1, b.d / 2 - 0.6); g.add(spire);
+      addBox(g, 0.1, 0.6, 0.1, 0, b.h + 4.2, b.d / 2 - 0.6, lam(0xd8c070));
+      addBox(g, 0.4, 0.1, 0.1, 0, b.h + 4.3, b.d / 2 - 0.6, lam(0xd8c070));
+      addBox(g, 0.9, 1.5, 0.08, 0, 0.75, b.d / 2, lam(0x4a2a1a));
+      addBox(g, 0.06, 0.9, 0.5, b.w / 2, 1.6, -1, basic(0x7a5aa8));
+      addBox(g, 0.06, 0.9, 0.5, b.w / 2, 1.6, 1, basic(0xa85a5a));
+    } else if (b.kind === 'stage') {
+      // stage faces +x (towards the camera and the crowd)
+      addBox(g, b.w + 0.4, 0.2, b.d + 0.4, 0, b.h + 0.1, 0, lam(0x1a0a2a));
+      addBox(g, 0.4, 4.2, b.d, -b.w / 2 + 0.3, b.h + 2.1, 0, lam(0x1a1a22));
+      const scr = new THREE.Mesh(new THREE.PlaneGeometry(b.d * 0.6, 2.4), new THREE.MeshBasicMaterial({ map: textTex('DOGCORE', '#7af8ff', '#3a0a4a', 96, 24) }));
+      scr.rotation.y = Math.PI / 2; scr.position.set(-b.w / 2 + 0.52, b.h + 2.5, 0); g.add(scr);
+      for (const sz of [-b.d / 2 + 1, b.d / 2 - 1]) {
+        addBox(g, 1.2, 3, 1.4, -0.5, b.h + 1.5, sz, lam(0x111111));
+        addBox(g, 0.05, 0.9, 0.9, 0.12, b.h + 2.1, sz, basic(0xff4fd8));
+        addBox(g, 0.05, 0.6, 0.6, 0.12, b.h + 0.9, sz, basic(0x7af8ff));
+      }
+      for (let i = 0; i < 7; i++) { const l = addBox(g, 0.3, 0.3, 0.3, -b.w / 2 + 0.6, b.h + 4.4, -b.d / 2 + 1.5 + i * 2.5, basic(i % 2 ? 0xff4fd8 : 0x7af8ff)); anim.orbs.push(l); }
+      // crowd barrier in front of the stage
+      for (let i = 0; i < 6; i++) addBox(g, 0.1, 0.6, 1.6, b.w / 2 + 0.9, 0.3, -b.d / 2 + 2 + i * 2.8, lam(0xc0c0c8));
     } else {
       // hip roof
       const roof = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 4), lam(b.roof));
@@ -333,7 +368,7 @@ const WORLD = (() => {
 
   function buildCamps(scene) {
     const g = new THREE.Group();
-    const camps = [[72, 15], [101, 80], [22, 47], [40, 8], [12, 64], [132, 112]];
+    const camps = [[72, 15], [101, 80], [22, 47], [40, 8], [12, 64], [132, 112], [178, 105], [144, 84], [40, 186], [186, 112]];
     camps.forEach(([cx, cz], i) => {
       kennel(g, cx - 2.5, cz - 2.2, ['#8a6a4a', '#6a5a7a', '#7a7a4a'][i % 3]);
       kennel(g, cx + 2.6, cz - 1.8, ['#7a4a3a', '#5a6a6a', '#8a5a5a'][i % 3]);
@@ -411,6 +446,75 @@ const WORLD = (() => {
     scene.add(g);
   }
 
+  // ---- expansion set pieces: festival fence & gate, watchtowers, park, graveyard ----
+  let gateMesh = null;
+  function buildExpansion(scene) {
+    const g = new THREE.Group();
+    const F = map.festival;
+    const fenceMat = lam(0x2a2a32), railMat = lam(0xff4fd8);
+    // fence panels along the perimeter
+    const seg = (x0, z0, x1, z1) => {
+      const len = Math.hypot(x1 - x0, z1 - z0);
+      const m = addBox(g, len, 1.6, 0.15, (x0 + x1) / 2, 0.8, (z0 + z1) / 2, fenceMat);
+      m.rotation.y = -Math.atan2(z1 - z0, x1 - x0);
+      const r = addBox(g, len, 0.12, 0.2, (x0 + x1) / 2, 1.65, (z0 + z1) / 2, railMat);
+      r.rotation.y = m.rotation.y;
+    };
+    const gx0 = F.gate[0][0], gx1 = F.gate[F.gate.length - 1][0] + 1;
+    seg(F.x0 + 0.5, F.z0 + 0.5, gx0, F.z0 + 0.5);
+    seg(gx1, F.z0 + 0.5, F.x1 + 0.5, F.z0 + 0.5);
+    seg(F.x0 + 0.5, F.z1 + 0.5, F.x1 + 0.5, F.z1 + 0.5);
+    seg(F.x0 + 0.5, F.z0 + 0.5, F.x0 + 0.5, F.z1 + 0.5);
+    seg(F.x1 + 0.5, F.z0 + 0.5, F.x1 + 0.5, F.z1 + 0.5);
+    // gate arch + closable gate
+    for (const x of [gx0 - 0.3, gx1 + 0.3]) addBox(g, 0.4, 3.2, 0.4, x, 1.6, F.z0 + 0.5, lam(0x111111));
+    const arch = new THREE.Mesh(new THREE.BoxGeometry(gx1 - gx0 + 1.4, 0.8, 0.3), new THREE.MeshBasicMaterial({ map: textTex('DOGCORE FEST', '#ffe066', '#3a0a4a', 96, 20) }));
+    arch.position.set((gx0 + gx1) / 2, 3.3, F.z0 + 0.5); g.add(arch);
+    gateMesh = addBox(g, gx1 - gx0, 1.8, 0.2, (gx0 + gx1) / 2, 0.9, F.z0 + 0.5, lam(0xffd23a));
+    // light towers & banners inside
+    for (const [x, z] of [[F.x0 + 3, F.z0 + 4], [F.x1 - 3, F.z0 + 4], [F.x0 + 3, F.z1 - 9], [F.x1 - 3, F.z1 - 9]]) {
+      addBox(g, 0.3, 5, 0.3, x, 2.5, z, lam(0x333338));
+      const l = addBox(g, 0.8, 0.5, 0.5, x, 5, z, basic(0xffffff)); anim.orbs.push(l);
+      setSolid(Math.floor(x), Math.floor(z));
+    }
+    for (let i = 0; i < 8; i++) {
+      const x = F.x0 + 4 + i * 4, z = F.z0 + 2;
+      const b = addBox(g, 0.05, 1.2, 0.8, x, 2.2, z, basic([0xff4fd8, 0x7af8ff, 0xffe066][i % 3]));
+      b.rotation.y = Math.PI / 2;
+    }
+    // watchtowers
+    for (const tw of map.towers) {
+      const t = new THREE.Group();
+      for (const [dx, dz] of [[-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]]) addBox(t, 0.12, 3.2, 0.12, dx, 1.6, dz, lam(0x6a4a2a));
+      addBox(t, 1.4, 0.15, 1.4, 0, 3.2, 0, lam(0x8a6a3a));
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.1, 0.8, 4), lam(0x4a5a2a)); roof.rotation.y = Math.PI / 4; roof.position.y = 4.1; t.add(roof);
+      for (let k = 0; k < 4; k++) addBox(t, 0.6, 0.06, 0.06, 0.3, 0.5 + k * 0.7, 0.5, lam(0x6a4a2a));
+      t.position.set(tw.x + 0.5, 0, tw.z + 0.5);
+      g.add(t);
+    }
+    // Ramsey Creek picnic tables
+    for (const [x, z] of [[141, 84], [145, 83], [143, 88]]) {
+      addBox(g, 1.4, 0.1, 0.7, x, 0.6, z, lam(0x8a5a2a));
+      addBox(g, 1.4, 0.08, 0.25, x, 0.35, z - 0.55, lam(0x7a4a2a));
+      addBox(g, 1.4, 0.08, 0.25, x, 0.35, z + 0.55, lam(0x7a4a2a));
+    }
+    // graveyard by the old church
+    for (let i = 0; i < 9; i++) {
+      const x = 52 + (i % 3) * 2, z = 177 + Math.floor(i / 3) * 2.5;
+      addBox(g, 0.5, 0.7, 0.15, x, 0.35, z, lam(0x8a8a8a));
+      setSolid(Math.floor(x), Math.floor(z));
+    }
+    // I-77 sign
+    const sgn = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 0.1), new THREE.MeshBasicMaterial({ map: textTex('I-77', '#ffffff', '#1a6a3a', 48, 26) }));
+    sgn.position.set(148.5, 2.2, 60); g.add(sgn);
+    addBox(g, 0.1, 1.8, 0.1, 148.5, 0.9, 59.9, lam(0x888888));
+    scene.add(g);
+  }
+  function openGate() {
+    if (gateMesh) gateMesh.visible = false;
+    for (const [x, z] of map.festival.gate) map.solid[z * map.W + x] = 0;
+  }
+
   function setSolid(x, z) { if (x >= 0 && z >= 0 && x < map.W && z < map.W) map.solid[z * map.W + x] = 1; }
   function solidAt(x, z) {
     const xi = Math.floor(x), zi = Math.floor(z);
@@ -444,5 +548,5 @@ const WORLD = (() => {
     for (const l of anim.lamps) l.scale.set(1, 0.8 + Math.sin(t * 13 + l.position.x) * 0.25, 1);
   }
 
-  return { build, solidAt, tileAt, snap, update, get map() { return map; }, TILE_COL, anim };
+  return { build, solidAt, tileAt, snap, update, openGate, get map() { return map; }, TILE_COL, anim };
 })();
