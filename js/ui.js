@@ -19,7 +19,7 @@ const UI = (() => {
   function setPanel(name) {
     panel = name;
     G.keys = {}; G.mouse.l = G.mouse.r = false;
-    if (name) { if (G.mode === 'play') G.mode = name === 'dialogue' ? 'dialogue' : 'menu'; }
+    if (name) { $('prompt').classList.add('hidden'); if (G.mode === 'play') G.mode = name === 'dialogue' ? 'dialogue' : 'menu'; }
     else if (G.mode === 'menu' || G.mode === 'dialogue') G.mode = 'play';
   }
   function closePanel() {
@@ -53,7 +53,7 @@ const UI = (() => {
   function prompt(text) {
     const p = $('prompt');
     if (!text || G.mode !== 'play') { p.classList.add('hidden'); return; }
-    p.textContent = text; p.classList.remove('hidden');
+    p.textContent = G.touch.on ? text.replace('[E] ', '') : text; p.classList.remove('hidden');
   }
   function discover(name) {
     const d = $('discover');

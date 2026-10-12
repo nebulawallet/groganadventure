@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#14121f">
 <title>Eli Grogan's Adventure</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
@@ -12,7 +15,7 @@
     --hp: #e04848; --ap: #48d870; --xp: #ffe066; --pink: #ff4fd8; --cyan: #7af8ff;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0a12; color: var(--text); font-family: 'VT323', monospace; font-size: 20px; user-select: none; }
+  html, body { margin: 0; height: 100%; overflow: hidden; touch-action: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; background: #0b0a12; color: var(--text); font-family: 'VT323', monospace; font-size: 20px; user-select: none; }
   canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; image-rendering: pixelated; image-rendering: crisp-edges; cursor: crosshair; transition: filter .25s; }
   body.bark canvas#game { filter: sepia(.6) hue-rotate(60deg) saturate(1.6) contrast(1.1); }
   body.bark::after { content: 'B.A.R.K. TIME'; position: fixed; top: 90px; left: 50%; transform: translateX(-50%); font-family: 'Press Start 2P'; font-size: 14px; color: #9aff9a; text-shadow: 2px 2px #000; animation: blink 1s infinite; pointer-events: none; }
@@ -190,7 +193,63 @@
   .eline b { color: var(--edge); font-weight: normal; }
   #ending-fate { color: var(--pink); margin: 12px 0; font-size: 21px; } #ending-stats { color: var(--dim); }
 
+  /* ---------- Touch controls ---------- */
+  #touchui { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
+  #touchui button { pointer-events: auto; touch-action: none; font-family: 'Press Start 2P', monospace; color: var(--text); }
+  #joyzone { position: absolute; left: 0; top: 60px; bottom: 0; width: 50%; pointer-events: auto; touch-action: none; }
+  #joy { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; background: rgba(20,18,31,.35); border: 3px solid rgba(232,192,112,.6); pointer-events: none; }
+  #joyknob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; border-radius: 50%; background: rgba(232,192,112,.85); border: 3px solid #000; transform: translate(-50%,-50%); }
+  .joyhint { position: absolute; left: 40px; bottom: 40px; width: 100px; height: 100px; border-radius: 50%; border: 3px dashed rgba(232,192,112,.35); display: flex; align-items: center; justify-content: center; font-family: 'Press Start 2P'; font-size: 9px; color: rgba(255,255,255,.45); text-align: center; pointer-events: none; }
+  #tbtns { position: absolute; right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); width: 250px; height: 230px; pointer-events: none; }
+  .tb { position: absolute; border-radius: 50%; background: rgba(20,18,31,.7); border: 3px solid var(--edge); box-shadow: 0 0 0 2px #000; font-size: 9px; line-height: 1.3; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .tb span { font-size: 22px; line-height: 1; margin-bottom: 2px; }
+  .tb.down { background: var(--edge); color: #000; transform: scale(.94); }
+  .tb.off { opacity: .4; }
+  .tb.on { border-color: #9aff9a; color: #9aff9a; }
+  #tb-melee { right: 0; bottom: 0; width: 96px; height: 96px; border-color: #ff7a7a; }
+  #tb-ranged { right: 104px; bottom: 6px; width: 70px; height: 70px; border-color: var(--cyan); }
+  #tb-dodge { right: 14px; bottom: 106px; width: 66px; height: 66px; }
+  #tb-talk { right: 96px; bottom: 90px; width: 70px; height: 70px; opacity: .55; }
+  #tb-talk.ready { opacity: 1; border-color: var(--xp); color: var(--xp); animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 2px #000, 0 0 14px 4px rgba(255,224,102,.7); } }
+  #tb-bark { right: 182px; bottom: 84px; width: 54px; height: 54px; }
+  #tb-heal { right: 186px; bottom: 16px; width: 54px; height: 54px; border-color: var(--hp); }
+  #tb-mega { right: 178px; bottom: 150px; width: 54px; height: 54px; }
+  #tb-whistle { right: 110px; bottom: 170px; width: 54px; height: 54px; border-color: var(--pink); }
+  #ttop { position: absolute; top: max(6px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 30; }
+  #ttop button { pointer-events: auto; font-size: 8px; padding: 7px 8px; background: rgba(20,18,31,.88); border: 2px solid var(--edge2); }
+  #ttop button.down { background: var(--edge); color: #000; }
+  body.touch:not(.t-inplay) #joyzone, body.touch:not(.t-inplay) #tbtns, body.touch:not(.t-inplay) .joyhint { display: none; }
+  body.touch #abilities, body.touch #weapons { display: none; }
+  body.touch #tracker { bottom: auto; top: 96px; left: 10px; width: min(300px, 42vw); font-size: 15px; padding: 5px 8px; }
+  body.touch #tracker .small { display: none; }
+  body.touch #toasts { top: 46px; }
+  body.touch #bossbar { top: 44px; }
+  body.touch #prompt { bottom: max(12px, env(safe-area-inset-bottom)); font-size: 17px; max-width: 34vw; text-align: center; }
+  body.touch canvas#game { cursor: default; }
+  body.touch .desk-only { display: none; } body:not(.touch) .touch-only { display: none; }
+  @media (max-height: 520px) {
+    body { font-size: 17px; }
+    #stats { top: 6px; left: 6px; padding: 4px 6px; } #portrait-mini, #portrait-mini canvas { width: 36px; height: 36px; } .bars { width: 150px; }
+    .bar { height: 13px; } .bar span { font-size: 13px; line-height: 10px; } .row1 { font-size: 15px; }
+    #mmwrap { top: 6px; right: 6px; } #minimap { width: 104px; height: 104px; } #locname { font-size: 14px; max-width: 150px; }
+    body.touch #tracker { top: 66px; font-size: 14px; }
+    #dialogue { bottom: 6px; padding: 8px; gap: 8px; } #dportrait { width: 72px; height: 72px; } #dportrait canvas { width: 72px; height: auto; }
+    #dname { font-size: 10px; } #dtext { font-size: 18px; min-height: 0; } .choice { font-size: 18px; padding: 2px 6px; } #dchoices { margin-top: 4px; }
+    #menu { height: 94vh; } .mbody { padding: 8px 10px; } .mtitle { font-size: 11px; } .charleft { flex-basis: 120px; } .charleft canvas { width: 100px; height: auto; }
+    .btn.big { padding: 6px; margin: 5px auto; font-size: 18px; }
+    .tlogo { font-size: 24px; } .tsub { font-size: 18px; margin: 6px 0 10px; } .tchars { display: none; }
+    .cpanel { padding: 10px 14px; } .story { font-size: 18px; } .ctable { font-size: 17px; }
+    #tbtns { transform: scale(.85); transform-origin: right bottom; }
+  }
   @media (max-width: 760px) {
+    body.touch #stats, body.touch #mmwrap { top: 46px; }
+    body.touch #tracker { top: 140px; width: 52vw; }
+    body.touch #toasts { top: 200px; }
+    body.touch #bossbar { top: 200px; width: 90vw; }
+    body.touch #tbtns { transform: scale(.85); transform-origin: right bottom; }
+    body.touch #prompt { max-width: 60vw; bottom: 230px; }
+    .ctable { grid-template-columns: 110px 1fr; }
     #tracker { width: 220px; font-size: 15px; } #weapons { display: none; } #minimap { width: 120px; height: 120px; } .bars { width: 140px; }
     .charwrap, .invwrap, .crewrap, .shopbody { flex-direction: column; } .invdet { flex: none; }
   }
@@ -223,6 +282,24 @@
 <div id="flash"></div>
 <div id="fader"></div>
 <div id="bossbar" class="hidden"><div class="bn">SHIVE, THE HYPERPOP WIZARD</div><div class="bb"><div id="bossfill"></div></div><div id="bossstate"></div></div>
+
+<div id="touchui" class="hidden">
+  <div id="joyzone"><div class="joyhint">DRAG<br>TO<br>MOVE</div></div>
+  <div id="joy" class="hidden"><div id="joyknob"></div></div>
+  <div id="tbtns">
+    <button class="tb" id="tb-melee" data-act="melee"><span>&#9876;</span>HIT</button>
+    <button class="tb" id="tb-ranged" data-act="ranged"><span>&#10150;</span>SHOOT</button>
+    <button class="tb" id="tb-dodge" data-key="Space"><span>&raquo;</span>DODGE</button>
+    <button class="tb" id="tb-talk" data-key="KeyE"><span>&#128172;</span>TALK</button>
+    <button class="tb" id="tb-bark" data-key="KeyQ">BARK</button>
+    <button class="tb" id="tb-heal" data-key="KeyH">HEAL</button>
+    <button class="tb hidden" id="tb-mega" data-key="KeyF">MEGA</button>
+    <button class="tb hidden" id="tb-whistle" data-key="KeyG">WHSTL</button>
+  </div>
+  <div id="ttop">
+    <button data-key="KeyM">MAP</button><button data-key="KeyC">STATS</button><button data-key="KeyI">BAG</button><button data-key="KeyJ">QUESTS</button><button data-key="Escape">MENU</button><button id="tb-fs">&#9974;</button>
+  </div>
+</div>
 
 <div id="dialogue" class="box hidden">
   <div id="dportrait"></div>
@@ -270,7 +347,17 @@
 <div id="controls" class="screen hidden">
   <div class="cpanel box">
     <h2>CONTROLS</h2>
-    <div class="ctable">
+    <div class="ctable touch-only">
+      <div>Left side</div><div>Drag anywhere to move</div>
+      <div>HIT</div><div>Melee attack (auto-aims at the nearest goon)</div>
+      <div>SHOOT</div><div>Ranged attack (uses AP, auto-aims)</div>
+      <div>DODGE</div><div>Dodge roll (invincible while rolling)</div>
+      <div>TALK</div><div>Glows when you can talk or interact</div>
+      <div>BARK / HEAL</div><div>B.A.R.K. slow motion / quick heal</div>
+      <div>Top buttons</div><div>Map, stats &amp; perks, bag, quests, menu, fullscreen</div>
+      <div>Dialogue</div><div>Tap the text to skip, tap a choice to answer</div>
+    </div>
+    <div class="ctable desk-only">
       <div>W A S D</div><div>Move (isometric)</div>
       <div>Mouse</div><div>Aim</div>
       <div>Left Click</div><div>Melee attack</div>
@@ -309,14 +396,15 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="js/util.js"></script>
-<script src="js/worldgen.js"></script>
-<script src="js/sprites.js"></script>
-<script src="js/data.js"></script>
-<script src="js/dialogues.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/world.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/game.js"></script>
+<script src="js/util.js?v=3"></script>
+<script src="js/worldgen.js?v=3"></script>
+<script src="js/sprites.js?v=3"></script>
+<script src="js/data.js?v=3"></script>
+<script src="js/dialogues.js?v=3"></script>
+<script src="js/audio.js?v=3"></script>
+<script src="js/world.js?v=3"></script>
+<script src="js/ui.js?v=3"></script>
+<script src="js/game.js?v=3"></script>
+<script src="js/touch.js?v=3"></script>
 </body>
 </html>

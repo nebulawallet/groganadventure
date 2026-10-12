@@ -2,7 +2,7 @@
 const SFX = (() => {
   let ctx = null, master = null, musicGain = null, musicOn = true, seqTimer = null, step = 0, track = 'world';
   function init() {
-    if (ctx) return;
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     try {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       master = ctx.createGain(); master.gain.value = 0.5; master.connect(ctx.destination);

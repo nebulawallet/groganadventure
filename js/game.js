@@ -14,7 +14,7 @@ const G = {
   pendingPerk: 0, pendingSkill: 0, pendingSpecial: 0, tracked: 'main', look: 'eli',
   // ---- runtime ----
   p: null, npcs: {}, enemies: [], projectiles: [], pickups: [], effects: [], pylons: [], camps: {}, boss: null,
-  barkTime: false, keys: {}, mouse: { x: 0, y: 0, l: false, r: false, wx: 0, wz: 0, lq: -9, rq: -9 },
+  barkTime: false, touch: { on: false, mx: 0, my: 0 }, keys: {}, mouse: { x: 0, y: 0, l: false, r: false, wx: 0, wz: 0, lq: -9, rq: -9 },
 };
 
 (function () {
@@ -32,7 +32,8 @@ const G = {
   scene.add(sun);
   let lowW = 320, lowH = 180, pixScale = 3;
   function resize() {
-    pixScale = Math.max(2, Math.round(innerHeight / 330));
+    // touch devices: show more of the world on small screens (fractional scale is fine with pixelated upscaling)
+    pixScale = G.touch.on ? Math.max(1, Math.min(innerWidth, innerHeight) / 250) : Math.max(2, Math.round(innerHeight / 330));
     lowW = Math.ceil(innerWidth / pixScale); lowH = Math.ceil(innerHeight / pixScale);
     renderer.setSize(lowW, lowH, false);
     const vw = lowW / PX, vh = lowH / PX;
@@ -212,13 +213,22 @@ const G = {
     if (!blocked(e.x, e.z + dz, r)) e.z += dz;
   }
 
-  function updatePlayer(dt) {
-    const p = G.p, k = G.keys;
+  // movement input from keyboard, or the on-screen joystick (analog, screen space)
+  function inputVec() {
+    const k = G.keys;
     let ix = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
     let iy = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
+    if (!ix && !iy && (G.touch.mx || G.touch.my)) { ix = G.touch.mx; iy = G.touch.my; }
+    return [ix, iy];
+  }
+
+  function updatePlayer(dt) {
+    const p = G.p;
+    const [ix, iy] = inputVec();
     let mx = ISO.right.x * ix + ISO.up.x * iy, mz = ISO.right.z * ix + ISO.up.z * iy;
-    const ml = Math.hypot(mx, mz);
-    if (ml > 0) { mx /= ml; mz /= ml; }
+    let ml = Math.hypot(mx, mz);
+    if (ml > 1) { mx /= ml; mz /= ml; ml = 1; }
+    if (ml > 0.1) { p.lastMx = mx / ml; p.lastMz = mz / ml; }
     p.meleeCd -= dt; p.rangedCd -= dt; p.dodgeCd -= dt; p.iframes -= dt; p.atkT -= dt; p.barkCd -= dt; p.whistleCd -= dt;
 
     // aim
@@ -265,9 +275,7 @@ const G = {
   function dodge() {
     const p = G.p;
     if (p.dodgeCd > 0 || p.dodgeT > 0 || G.ap < 8) return;
-    const k = G.keys;
-    let ix = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
-    let iy = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
+    const [ix, iy] = inputVec();
     let dx = ISO.right.x * ix + ISO.up.x * iy, dz = ISO.right.z * ix + ISO.up.z * iy;
     if (!dx && !dz) { dx = Math.cos(p.aimA); dz = Math.sin(p.aimA); }
     const l = Math.hypot(dx, dz); p.dx = dx / l; p.dz = dz / l;
@@ -1199,9 +1207,21 @@ const G = {
   const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.5);
   const v2 = new THREE.Vector2(), v3 = new THREE.Vector3();
   function updateMouseWorld() {
+    if (G.touch.on) { autoAim(); return; }
     v2.set((G.mouse.x / innerWidth) * 2 - 1, -(G.mouse.y / innerHeight) * 2 + 1);
     ray.setFromCamera(v2, cam);
     if (ray.ray.intersectPlane(plane, v3)) { G.mouse.wx = v3.x; G.mouse.wz = v3.z; }
+  }
+  // touch: aim at the nearest goon / boss / pylon, otherwise where Eli is walking
+  function autoAim() {
+    const p = G.p;
+    let best = null, bd = 9;
+    const consider = (t, x, z) => { const d = U.dist(p.x, p.z, x, z); if (d < bd) { bd = d; best = t; } };
+    for (const e of G.enemies) if (!e.dead) consider(e, e.x, e.z);
+    if (G.boss && G.boss.active) consider(G.boss, G.boss.x, G.boss.z);
+    if (!best) for (const py of G.pylons) if (!py.dead) consider(py, py.x, py.z);
+    if (best) { G.mouse.wx = best.x; G.mouse.wz = best.z; }
+    else { G.mouse.wx = p.x + (p.lastMx || 0.7) * 3; G.mouse.wz = p.z + (p.lastMz || 0.7) * 3; }
   }
   G.project = (x, y, z) => {
     v3.set(x, y, z).project(cam);
@@ -1255,7 +1275,7 @@ const G = {
     G.inv = { dog_treat: 3 };
     G.quests = { main: 0 };
     startWorld(91, 39.2);
-    UI.toast('Press E to talk to Vea.', 'quest');
+    UI.toast(G.touch.on ? 'Walk to Vea and tap TALK.' : 'Press E to talk to Vea.', 'quest');
     autosave();
   };
 

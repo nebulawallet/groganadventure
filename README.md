@@ -23,6 +23,8 @@ Double-click `index.html` (it needs an internet connection the first time, to lo
 | N | Toggle music |
 | Esc / F5 | Pause menu / Quick save |
 
+On phones and tablets the game shows touch controls: drag on the left side to move, and use the on-screen buttons to hit, shoot, dodge and talk (attacks auto-aim). Landscape works best.
+
 The game autosaves to your browser.
 
 ## Files
@@ -34,3 +36,4 @@ The game autosaves to your browser.
 - `js/game.js` - gameplay, combat, AI, boss fight, saving
 - `js/ui.js` - HUD, dialogue box, menus, minimap and full map
 - `js/audio.js` - chiptune music and sound effects
+- `js/touch.js` - mobile controls (joystick, buttons, auto-aim)
