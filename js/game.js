@@ -884,8 +884,8 @@ const G = {
   function npcWants(id) {
     if (id === 'shive') return (G.qStage('main') === 80 || G.qStage('main') === 89) && !G.flags.shiveDefeated;
     if (id === 'robyboss') return G.qStage('main') === 92 && !G.flags.robyDefeated;
-    if (id === 'rump' && G.qStage('main') >= 93 && G.qStage('rump2') === 0) return true;
-    if (id === 'joe') return G.qStage('rump2') === 20 && !G.flags.joeDefeated;
+    if (id === 'rump' && G.qStage('main') === 100 && G.flags.robyEnd && !G.flags.joeEnd) return true;
+    if (id === 'joe') return G.qStage('main') === 95 && !G.flags.joeDefeated;
     if (id === 'squid' && (G.qStage('main') === 91 || G.qStage('main') === 92) && !G.flags.squidWorried) return true;
     if (SECOND[id] && G.qStage(SECOND[id][0]) === 100 && G.qStage(SECOND[id][1]) === 0) return true;
     if (id === 'roby' && G.qStage('main') >= 60 && G.qStage('roby2') === 0) return true;
@@ -918,11 +918,11 @@ const G = {
       if (id === 'bouncer') vis = !G.flags.bouncerBeaten && !G.flags.bouncerFighting;
       if (id === 'roby') vis = !(G.flags.robyTurned && !G.flags.robyEnd);
       if (id === 'joe') {
-        const st = G.qStage('rump2');
+        const st = G.qStage('main');
         const friends = G.flags.joeEnd === 'friends';
-        vis = (st === 20 && !(G.boss && G.boss.active) && !G.flags.joeEnd) || friends;
+        vis = (st === 95 && !(G.boss && G.boss.active) && !G.flags.joeEnd) || friends;
         const key = friends ? 'hall' : 'quad';
-        if (vis && n.spotKey !== key && !(st === 20 && G.flags.joeDefeated && !friends)) {
+        if (vis && n.spotKey !== key && !(st === 95 && G.flags.joeDefeated && !friends)) {
           n.spotKey = key; const q = friends ? WORLD.snap(126.5, 27.5) : WORLD.snap(177, 54.5); n.x = q.x; n.z = q.z; placeActor(n);
         }
       }
@@ -1197,7 +1197,7 @@ const G = {
     if (id === 'hecklers' && G.qStage('river') === 10) G.qSet('river', 20);
     if (id.startsWith('pylon')) UI.toast('The Goon Alpha is down! Now smash that pylon!', 'quest');
     if (id === 'ramsey' && G.qStage('vea2') === 10) G.qSet('vea2', 20);
-    if (id === 'bluearmy' && G.qStage('rump2') === 10) { G.qSet('rump2', 20); UI.toast('The Blue Army is routed! Sleepy Joe is on the quad...', 'quest'); }
+    if (id === 'bluearmy' && G.qStage('main') === 94) { G.qSet('main', 95); UI.toast('The Blue Army is routed! Sleepy Joe is on the quad...', 'quest'); }
   }
 
   // ======================= quest checks =======================
@@ -1594,7 +1594,7 @@ const G = {
     const n = G.npcs.joe;
     for (let i = 0; i < 24; i++) particle(n.x, 1.5, n.z, U.pick(['#ffd0e0', '#fff4d8', '#3a6aff', '#ffffff']), U.rand(-3, 3), U.rand(2, 5), U.rand(-3, 3), 1);
     G.xp(400, true);
-    G.qSet('rump2', 30);
+    G.qSet('main', 96);
   };
   function checkAmbush() {
     const s = G.qStage('main');
@@ -1717,6 +1717,13 @@ const G = {
     try { data = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { data = null; }
     if (!data) return false;
     for (const k of SAVE_FIELDS) if (data[k] !== undefined) G[k] = data[k];
+    // older saves: the Rump vs Sleepy Joe quest used to be a side quest
+    if (G.quests.rump2 !== undefined) {
+      const r = G.quests.rump2;
+      if (r > 0 && r < 100 && G.quests.main === 100) G.quests.main = { 10: 94, 20: 95, 30: 96 }[r] || 94;
+      if (G.tracked === 'rump2') G.tracked = 'main';
+      delete G.quests.rump2;
+    }
     startWorld(data.px, data.pz);
     UI.toast('Welcome back, Eli.', 'item');
     return true;

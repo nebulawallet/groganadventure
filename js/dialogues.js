@@ -11,7 +11,7 @@ const DLG = (() => {
   D.vea = {
     entry: (g) => {
       if (g.qStage('main') === 0) return 'intro';
-      if (g.qStage('main') === 93) return 'ending';
+      if (g.qStage('main') === 97) return 'ending';
       if (g.qStage('main') === 90 || (g.qStage('main') === 100 && !g.flags.robyTurned)) return 'pre_betray';
       if (g.qStage('vea') >= 10 && g.qStage('vea') < 100 && g.count('wildflower') >= 4) return 'flowers_done';
       return 'hub';

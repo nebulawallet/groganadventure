@@ -699,6 +699,7 @@ const UI = (() => {
       ['squid', 'Squid', 'The crickets are chirping on beat again! Thank you, Eli!'],
       ['rack', 'Rack', 'Rocky Steve says congratulations. He said it with his eyes.'],
       ['sinder', 'Sinder', "Hehehe... I'll be watching you celebrate. From a respectful distance."],
+      ['rump', 'Ronald Rump', 'Tremendous ending. The best ending. Some people are saying it is the greatest ending of any game, ever. I said it first.'],
       ['rivergrain', 'Rivergrain', 'Why did Eli cross the lake? To get his costume back! ...I workshopped that for a week.'],
     ];
     const box = $('ending-lines'); box.innerHTML = '';
@@ -709,7 +710,8 @@ const UI = (() => {
       box.appendChild(row);
     }
     const robyFate = { forgiven: ' You forgave Roby. He now runs a very wholesome bug-facts page with Squid.', bonked: ' You bonked Roby back to reality. He has been banned from his own subreddit.', redeemed: ' Roby burned the Codex of Woof and apologised to Squid in a 4,000-word post. She accepted.' }[G.flags.robyEnd] || '';
-    $('ending-fate').textContent = fate + robyFate;
+    const joeFate = { friends: ' Rump and Sleepy Joe are now co-presidents of the HOA. They have argued about sprinkles for nine hours straight.', bed: ' Rump won the HOA election. Sleepy Joe is still napping on the college quad.', bonked: ' Sleepy Joe now runs the Lake Norman Bowling Club. Nobody bowls.' }[G.flags.joeEnd] || '';
+    $('ending-fate').textContent = fate + robyFate + joeFate;
     $('ending-stats').textContent = `Final level ${G.level} · Quests complete: ${Object.keys(DATA.QUESTS).filter((q) => G.qStage(q) >= 100).length}/${Object.keys(DATA.QUESTS).length} · Places found: ${Object.keys(G.discovered).length}/${WORLD.map.LOCS.length}`;
     $('ending-go').onclick = () => { e.classList.add('hidden'); setPanel(null); G.mode = 'play'; G.save(false); toast('Lake Norman is yours to explore, dog. Finish any leftover quests!', 'quest'); };
   }

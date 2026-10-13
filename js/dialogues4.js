@@ -7,14 +7,24 @@
   const addHub = (id, ...choices) => { const hub = D[id].nodes.hub.choices; hub.splice(hub.length - 1, 0, ...choices); };
 
   // ======================= RONALD RUMP =======================
-  preEntry('rump', (g) => (g.qStage('rump2') === 30 ? 'joe_report' : null));
+  // the HOA election is part of the main story (stages 93-96)
+  const canStart = (g) => g.qStage('main') === 93 || (g.qStage('main') === 100 && g.flags.robyEnd && !g.flags.joeEnd);
+  preEntry('rump', (g) => (g.qStage('main') === 96 ? 'joe_report' : canStart(g) ? 'joe_offer' : null));
+  preEntry('vea', (g) => (g.qStage('main') >= 93 && g.qStage('main') <= 96 && !g.flags.veaRumpHint ? 'rump_news' : null));
+  addNodes('vea', {
+    rump_news: {
+      text: "Eli! You got it back AGAIN! Roby's at home writing a 4,000-word apology to Squid. ...Oh, and Ronald Rump has been shouting your name down the lane all morning. Something about 'tremendous ice cream crimes'. Go see what he wants, then come back and tell me EVERYTHING.",
+      on: (g) => { g.flags.veaRumpHint = true; },
+      choices: [{ t: 'Ice cream crimes?', next: null }],
+    },
+  });
   addNodes('rump', {
     joe_offer: {
       text: "Kid! You beat the Reddit guy. Tremendous. Huge. Now I need a REAL fighter. There's a man. Sleepy Joe. Very sleepy. The sleepiest. He's running against me for HOA President, and he brought an ARMY. The Blue Army. They've taken over Davidson College. Very unfair. Go beat them and I'll make you my Vice President. Of the HOA. It's a huge deal.",
       choices: [
         { t: "I'll do it.", next: 'joe_go' },
         { t: "Why don't YOU fight him?", next: 'joe_why' },
-        { t: 'Maybe later.', next: null },
+        { t: 'Give me a minute.', next: null },
       ],
     },
     joe_why: {
@@ -23,7 +33,7 @@
     },
     joe_go: {
       text: "Fantastic! The Blue Army is camped on the college quad in Davidson. Big guys in suits. Aviator sunglasses. They throw ICE CREAM, kid. It's a disgrace. A delicious disgrace. Go get 'em!",
-      on: (g) => { if (g.qStage('rump2') === 0) g.qSet('rump2', 10); },
+      on: (g) => { if (canStart(g)) g.qSet('main', 94); },
       choices: [{ t: 'On it.', next: null }],
     },
     joe_report: {
@@ -32,7 +42,7 @@
         bed: "You beat Sleepy Joe?! TREMENDOUS! I always said you were my favourite. I said it first. Nobody said it before me. Here: the Golden Gavel. Solid gold. Mostly gold. Some gold.",
         bonked: "You BONKED him? Kid, that's... honestly that's a little rough. He's an old guy. ...But tremendous bonk. Huge bonk. Take the Golden Gavel. Don't bonk me with it.",
       }[g.flags.joeEnd] || 'Tremendous work, kid. Here, the Golden Gavel.'),
-      on: (g) => { g.give('golden_gavel', 1); g.money(250); g.xp(300, true); g.qSet('rump2', 100); g.flags.rumpVP = true; },
+      on: (g) => { g.give('golden_gavel', 1); g.money(250); g.xp(300, true); g.qSet('main', 97); g.flags.rumpVP = true; },
       choices: [{ t: 'Thanks, Mr. President.', next: 'vp' }],
     },
     vp: {
@@ -41,8 +51,7 @@
     },
   });
   addHub('rump',
-    { t: 'Got any jobs for me?', next: 'joe_offer', cond: (g) => g.qStage('main') >= 93 && g.qStage('rump2') === 0 },
-    { t: 'Where is the Blue Army again?', next: 'joe_go', cond: (g) => g.qStage('rump2') === 10 || g.qStage('rump2') === 20 },
+    { t: 'Where is the Blue Army again?', next: 'joe_go', cond: (g) => g.qStage('main') === 94 || g.qStage('main') === 95 },
   );
 
   // ======================= SLEEPY JOE =======================

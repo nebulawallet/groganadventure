@@ -220,7 +220,7 @@ const DATA = (() => {
     { id: 'terrell', x: 40, z: 186, r: 3, members: ['hound', 'barker', 'raver'], lvl: 3, respawn: 200 },
     { id: 'milake', x: 120, z: 158, r: 3, members: ['pup', 'raver', 'barker'], lvl: 3, respawn: 200 },
     { id: 'i77', x: 152, z: 76, r: 3, members: ['raver', 'pup', 'pup'], lvl: 3, respawn: 220 },
-    { id: 'bluearmy', x: 177, z: 54.5, r: 3, members: ['blueagent', 'blueagent', 'bluescoop', 'bluescoop', 'blueagent'], lvl: 4, when: (g) => g.qStage('rump2') === 10, respawn: 0 },
+    { id: 'bluearmy', x: 177, z: 54.5, r: 3, members: ['blueagent', 'blueagent', 'bluescoop', 'bluescoop', 'blueagent'], lvl: 4, when: (g) => g.qStage('main') === 94, respawn: 0 },
     { id: 'festival', x: 170.5, z: 170, r: 4, members: ['raver', 'raver', 'hound', 'barker', 'alpha'], lvl: 4, when: (g) => g.flags.gateOpen, respawn: 0 },
   ];
 
@@ -283,7 +283,11 @@ const DATA = (() => {
         90: { text: 'You got your costume back! Head home to Aldersprings Lane and tell Vea.', target: 'npc:vea' },
         91: { text: "ROBY MINK BETRAYED YOU and stole your costume! Chase him to Shive's Island: ride the Hydro-Scooter from Rivergrain's Pier.", target: 'pier' },
         92: { text: 'Defeat Roby Mink, Lord of the Upvotes, at the Spire and take your costume back!', target: 'npc:robyboss' },
-        93: { text: 'You got your costume back. AGAIN. Head home and tell Vea everything.', target: 'npc:vea' },
+        93: { text: 'You got your costume back! But Ronald Rump is shouting for you outside the Lake Norman Civic Hall in Mooresville.', target: 'npc:rump' },
+        94: { text: "Rump's orders: defeat Sleepy Joe's Blue Army at Davidson College.", target: [177, 54.5] },
+        95: { text: 'The Blue Army is beaten! Find Sleepy Joe on the college quad and challenge him.', target: 'npc:joe' },
+        96: { text: 'Tell Ronald Rump how it went at the Civic Hall.', target: 'npc:rump' },
+        97: { text: 'Lake Norman is finally at peace. Head home and tell Vea everything.', target: 'npc:vea' },
         100: { text: 'Lake Norman is safe. Eli is a dog again.', done: true },
       },
     },
@@ -349,15 +353,6 @@ const DATA = (() => {
         10: { text: "Get rid of the goon hecklers at Rivergrain's Pier.", target: [87, 57] },
         20: { text: 'Tell Rivergrain the hecklers are gone.', target: 'npc:rivergrain' },
         100: { text: 'The Jokestar of Lake Norman rides again.', done: true },
-      },
-    },
-    rump2: {
-      name: 'Make Lake Norman Great Again', giver: 'Ronald Rump',
-      stages: {
-        10: { text: "Defeat Sleepy Joe's Blue Army at Davidson College.", target: [177, 54.5] },
-        20: { text: 'The Blue Army is beaten! Find Sleepy Joe on the college quad and challenge him.', target: 'npc:joe' },
-        30: { text: 'Tell Ronald Rump how it went at the Civic Hall.', target: 'npc:rump' },
-        100: { text: 'The Lake Norman HOA is (more or less) at peace.', done: true },
       },
     },
     jack2: {
