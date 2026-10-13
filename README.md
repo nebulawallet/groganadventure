@@ -40,6 +40,7 @@ The game autosaves to your browser.
 - `js/dialogues.js` - every character's dialogue tree
 - `js/dialogues2.js` - Act 3 dialogue, the new characters and the second side quests
 - `js/dialogues3.js` - Roby Mink's betrayal and final boss fight
+- `js/dialogues4.js` - Ronald Rump's post-game mission against Sleepy Joe and the Blue Army
 - `js/game.js` - gameplay, combat, AI, boss fight, saving
 - `js/ui.js` - HUD, dialogue box, menus, minimap and full map
 - `js/audio.js` - chiptune music and sound effects

@@ -165,11 +165,11 @@ const UI = (() => {
     const b = $('bossbar');
     b.classList.toggle('hidden', !show);
     if (!show || frac === undefined) return;
-    const roby = who === 'roby';
-    $('bossname').textContent = roby ? 'ROBY MINK, LORD OF THE UPVOTES' : 'SHIVE, THE HYPERPOP WIZARD';
+    const roby = who === 'roby', joe = who === 'joe';
+    $('bossname').textContent = roby ? 'ROBY MINK, LORD OF THE UPVOTES' : joe ? 'SLEEPY JOE, COMMANDER OF THE BLUE ARMY' : 'SHIVE, THE HYPERPOP WIZARD';
     $('bossfill').style.width = Math.max(0, frac * 100) + '%';
-    const shield = roby ? 'BAN SHIELD' : 'DIAMOND DRIP SHIELD';
-    const opening = roby ? 'wait for his IQ Blast, then hit him!' : 'wait for his Bass Drop, then hit him!';
+    const shield = roby ? 'BAN SHIELD' : joe ? 'SECRET SERVICE SHIELD' : 'DIAMOND DRIP SHIELD';
+    const opening = roby ? 'wait for his IQ Blast, then hit him!' : joe ? 'wait for him to nap, then hit him!' : 'wait for his Bass Drop, then hit him!';
     $('bossstate').textContent = shielded ? (whistle ? `${shield}: press G to blow the Dog Whistle!` : `${shield}: ${opening}`) : 'VULNERABLE!';
     $('bossstate').className = shielded ? 'sh' : 'vul';
   }

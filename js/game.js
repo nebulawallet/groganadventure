@@ -387,7 +387,7 @@ const G = {
     const b = G.boss;
     if (b && b.active && U.dist(p.x, p.z, b.x, b.z) < 10) {
       b.shieldT = 5.5; b.stun = 1.6;
-      UI.toast(b.who === 'roby' ? "The dog whistle makes Roby's costume ears ring! His BAN SHIELD shatters!" : "The dog whistle SHATTERS Shive's shield!", 'level');
+      UI.toast(b.who === 'joe' ? "The dog whistle wakes Joe right up! His SECRET SERVICE SHIELD drops!" : b.who === 'roby' ? "The dog whistle makes Roby's costume ears ring! His BAN SHIELD shatters!" : "The dog whistle SHATTERS Shive's shield!", 'level');
       UI.floatText(b.x, 3, b.z, 'AWOOOO?!', '#ff4fd8');
       SFX.play('boom');
     } else {
@@ -454,7 +454,7 @@ const G = {
   function killEnemy(e) {
     e.dead = true;
     removeActor(e);
-    for (let i = 0; i < 12; i++) particle(e.x, 0.7, e.z, U.pick(['#ffffff', '#d8d8d8', e.def.look.dog.color]), U.rand(-3, 3), U.rand(1, 4), U.rand(-3, 3), 0.6);
+    for (let i = 0; i < 12; i++) particle(e.x, 0.7, e.z, U.pick(['#ffffff', '#d8d8d8', e.def.look.dog ? e.def.look.dog.color : e.def.look.shirt]), U.rand(-3, 3), U.rand(1, 4), U.rand(-3, 3), 0.6);
     G.xp(e.xpv);
     if (G.hasPerk('agar')) G.hp = Math.min(G.maxHp(), G.hp + 6);
     const [lo, hi] = e.def.bucks;
@@ -494,7 +494,7 @@ const G = {
             const l = Math.max(0.01, dp); e.cdx = (p.x - e.x) / l; e.cdz = (p.z - e.z) / l;
           } else if (e.def.ranged) {
             const a = Math.atan2(p.z - e.z, p.x - e.x);
-            if (e.def.spread) for (let k = 0; k < e.def.spread; k++) spawnProjectile({ x: e.x, z: e.z, a: a + (k - (e.def.spread - 1) / 2) * 0.28, speed: 8.5, dmg: e.dmg, owner: 'e', life: 1.3, size: 0.22, kind: 'glow', colorStr: k % 2 ? '#ff8ae8' : '#7af8ff' });
+            if (e.def.spread) for (let k = 0; k < e.def.spread; k++) spawnProjectile({ x: e.x, z: e.z, a: a + (k - (e.def.spread - 1) / 2) * 0.28, speed: 8.5, dmg: e.dmg, owner: 'e', life: 1.3, size: 0.22, kind: 'glow', colorStr: e.def.scoop ? U.pick(['#ffd0e0', '#fff4d8', '#8a5a3a']) : k % 2 ? '#ff8ae8' : '#7af8ff' });
             else spawnProjectile({ x: e.x, z: e.z, a, speed: 8, dmg: e.dmg, owner: 'e', life: 1.4, size: 0.25, kind: 'bone' });
             SFX.play('shoot');
           } else if (dp < e.def.range + 0.5) hurtPlayer(e.dmg, e.x, e.z);
@@ -582,7 +582,8 @@ const G = {
     const round = G.boss ? G.boss.round : 0;
     if (G.race) endRace(false);
     let where = 'the nearest safe spot';
-    if (round === 1 || round === 3) { resetBoss(); G.p.x = MAP.isleDock.x + 0.5; G.p.z = MAP.isleDock.z; where = 'the island dock'; }
+    if (round === 4) { resetBoss(); const q = WORLD.snap(170, 41); G.p.x = q.x; G.p.z = q.z; where = 'Davidson'; }
+    else if (round === 1 || round === 3) { resetBoss(); G.p.x = MAP.isleDock.x + 0.5; G.p.z = MAP.isleDock.z; where = 'the island dock'; }
     else if (round === 2) { resetBoss(); G.p.x = MAP.festival.cx; G.p.z = MAP.festival.z0 + 3; where = 'the festival entrance'; }
     else {
       let best = SAFE[0], bd = 1e9;
@@ -883,6 +884,8 @@ const G = {
   function npcWants(id) {
     if (id === 'shive') return (G.qStage('main') === 80 || G.qStage('main') === 89) && !G.flags.shiveDefeated;
     if (id === 'robyboss') return G.qStage('main') === 92 && !G.flags.robyDefeated;
+    if (id === 'rump' && G.qStage('main') >= 93 && G.qStage('rump2') === 0) return true;
+    if (id === 'joe') return G.qStage('rump2') === 20 && !G.flags.joeDefeated;
     if (id === 'squid' && (G.qStage('main') === 91 || G.qStage('main') === 92) && !G.flags.squidWorried) return true;
     if (SECOND[id] && G.qStage(SECOND[id][0]) === 100 && G.qStage(SECOND[id][1]) === 0) return true;
     if (id === 'roby' && G.qStage('main') >= 60 && G.qStage('roby2') === 0) return true;
@@ -914,6 +917,15 @@ const G = {
       }
       if (id === 'bouncer') vis = !G.flags.bouncerBeaten && !G.flags.bouncerFighting;
       if (id === 'roby') vis = !(G.flags.robyTurned && !G.flags.robyEnd);
+      if (id === 'joe') {
+        const st = G.qStage('rump2');
+        const friends = G.flags.joeEnd === 'friends';
+        vis = (st === 20 && !(G.boss && G.boss.active) && !G.flags.joeEnd) || friends;
+        const key = friends ? 'hall' : 'quad';
+        if (vis && n.spotKey !== key && !(st === 20 && G.flags.joeDefeated && !friends)) {
+          n.spotKey = key; const q = friends ? WORLD.snap(126.5, 27.5) : WORLD.snap(177, 54.5); n.x = q.x; n.z = q.z; placeActor(n);
+        }
+      }
       if (id === 'robyboss') {
         vis = G.qStage('main') === 92 && !G.flags.robyEnd && !(G.boss && G.boss.active);
         if (vis && !G.flags.robyDefeated && n.spotKey !== 'isle') { n.spotKey = 'isle'; const q = WORLD.snap(68, 70); n.x = q.x; n.z = q.z; placeActor(n); }
@@ -1185,6 +1197,7 @@ const G = {
     if (id === 'hecklers' && G.qStage('river') === 10) G.qSet('river', 20);
     if (id.startsWith('pylon')) UI.toast('The Goon Alpha is down! Now smash that pylon!', 'quest');
     if (id === 'ramsey' && G.qStage('vea2') === 10) G.qSet('vea2', 20);
+    if (id === 'bluearmy' && G.qStage('rump2') === 10) { G.qSet('rump2', 20); UI.toast('The Blue Army is routed! Sleepy Joe is on the quad...', 'quest'); }
   }
 
   // ======================= quest checks =======================
@@ -1281,15 +1294,15 @@ const G = {
 
   // ======================= boss: SHIVE =======================
   G.bossStart = (where, who = 'shive') => {
-    const roby = who === 'roby';
-    const n = roby ? G.npcs.robyboss : G.npcs.shive;
+    const roby = who === 'roby', joe = who === 'joe';
+    const n = roby ? G.npcs.robyboss : joe ? G.npcs.joe : G.npcs.shive;
     const fest = where === 'festival';
-    const hp = roby ? (G.flags.robyRattled ? 1450 : 1700) : fest ? (G.flags.shiveRattled2 ? 1250 : 1450) : (G.flags.shiveRattled ? 650 : 750);
-    const arena = fest ? { x: MAP.festival.cx, z: MAP.festival.cz, r: 6, tr: 7 } : { x: MAP.ISLE.x, z: MAP.ISLE.z + 1, r: 3, tr: 5 };
-    const a = makeActor(roby ? charTex('npc_robyboss', DATA.LOOKS.roby_boss) : charTex('npc_shive', DATA.LOOKS.shive), 1.35);
-    Object.assign(a, { who, round: roby ? 3 : fest ? 2 : 1, arena, x: n.x, z: n.z, hp, maxHp: hp, active: true, shieldT: 0, stun: 0, atk: null, atkT: 2.0, tired: 0, minions: 0, flash: 0, mvT: 0, tx: n.x, tz: n.z });
+    const hp = joe ? (G.flags.joeRattled ? 1300 : 1500) : roby ? (G.flags.robyRattled ? 1450 : 1700) : fest ? (G.flags.shiveRattled2 ? 1250 : 1450) : (G.flags.shiveRattled ? 650 : 750);
+    const arena = joe ? { x: 177, z: 54.5, r: 3, tr: 4 } : fest ? { x: MAP.festival.cx, z: MAP.festival.cz, r: 6, tr: 7 } : { x: MAP.ISLE.x, z: MAP.ISLE.z + 1, r: 3, tr: 5 };
+    const a = makeActor(joe ? charTex('npc_joe', DATA.LOOKS.joe) : roby ? charTex('npc_robyboss', DATA.LOOKS.roby_boss) : charTex('npc_shive', DATA.LOOKS.shive), 1.35);
+    Object.assign(a, { who, round: joe ? 4 : roby ? 3 : fest ? 2 : 1, arena, x: n.x, z: n.z, hp, maxHp: hp, active: true, shieldT: 0, stun: 0, atk: null, atkT: 2.0, tired: 0, minions: 0, flash: 0, mvT: 0, tx: n.x, tz: n.z });
     // shield bubble
-    const sh = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 8), new THREE.MeshBasicMaterial({ color: roby ? 0x5a8aff : 0xff4fd8, transparent: true, opacity: 0.3, depthWrite: false }));
+    const sh = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 8), new THREE.MeshBasicMaterial({ color: joe ? 0x3a6aff : roby ? 0x5a8aff : 0xff4fd8, transparent: true, opacity: 0.3, depthWrite: false }));
     scene.add(sh); a.bubble = sh;
     G.boss = a;
     SFX.startMusic('boss');
@@ -1325,6 +1338,11 @@ const G = {
     const p = G.p;
     b.flash -= dt; b.shieldT -= dt; b.tired -= dt;
     const phase2 = b.hp < b.maxHp * 0.5;
+    if (b.dashT > 0) {
+      b.dashT -= dt;
+      moveEnt(b, b.ddx * 11 * dt, b.ddz * 11 * dt, 0.4);
+      if (!b.dashHit && U.dist(p.x, p.z, b.x, b.z) < 1.1) { b.dashHit = true; hurtPlayer(18, b.x, b.z); }
+    }
     if (b.stun > 0) b.stun -= dt;
     else {
       b.atkT -= dt;
@@ -1335,7 +1353,11 @@ const G = {
       if (dl > 0.2 && b.tired <= 0) moveEnt(b, (dx / dl) * 2.2 * dt, (dz / dl) * 2.2 * dt, 0.4);
       if (b.atkT <= 0 && b.tired <= 0) {
         let opts;
-        if (b.who === 'roby') {
+        if (b.who === 'joe') {
+          opts = ['scoops', 'scoops', 'sprinkles', 'charge', 'nap', 'freeze'];
+          if (b.minions < 3) opts.push('summon');
+          if (phase2) opts.push('charge', 'freeze', 'scoops', 'sprinkles');
+        } else if (b.who === 'roby') {
           opts = ['downvote', 'downvote', 'wall', 'ratio', 'iq', 'teleport'];
           if (b.minions < 3) opts.push('summon');
           if (phase2) opts.push('spiral', 'wall', 'iq', 'downvote');
@@ -1348,10 +1370,12 @@ const G = {
         }
         b.atk = U.pick(opts); b.step = 0; b.stepT = 0;
         b.atkT = phase2 ? 2.0 : 2.8;
-        const taunts = b.who === 'roby'
+        const taunts = b.who === 'joe'
+          ? { scoops: 'ICE CREAM, JACK!', sprinkles: 'SPRINKLES!', charge: "C'MON, MAN!", nap: '*yaaawn*', freeze: 'BRAIN FREEZE!', summon: 'BLUE ARMY, ROLL OUT!' }
+          : b.who === 'roby'
           ? { downvote: 'DOWNVOTED!', wall: 'WALL OF TEXT!', ratio: 'RATIO!', iq: 'IQ BLAST!!!', teleport: '*refreshes page*', summon: 'MODS! BAN HIM!', spiral: 'INFINITE SCROLL!!' }
           : { spiral: 'DOGCORE SPIRAL!!', ring: 'DROP THE BEAT!', burst: 'AUTOTUNE ORBS!', drop: 'BASS... DROP!!!', teleport: '*glitter poof*', summon: 'GOONS! ASSEMBLE!', money: 'MAKE IT RAIN!' };
-        UI.floatText(b.x, 3.2, b.z, taunts[b.atk], b.who === 'roby' ? '#7ab8ff' : '#ff4fd8');
+        UI.floatText(b.x, 3.2, b.z, taunts[b.atk], b.who === 'joe' ? '#9ac0ff' : b.who === 'roby' ? '#7ab8ff' : '#ff4fd8');
       }
       if (b.atk) {
         b.stepT -= dt;
@@ -1376,6 +1400,44 @@ const G = {
               for (let i = 0; i < n; i++) bossShoot((i / n) * Math.PI * 2 + b.step * 0.2, 5.5, i % 2 ? '#ff7a2a' : '#5a8aff');
               SFX.play('blob');
               b.step++; b.stepT = 0.5; if (b.step >= 3) b.atk = null;
+              break;
+            }
+            case 'scoops': {
+              for (let i = -2; i <= 2; i++) bossShoot(ap + i * 0.2, 7.5, U.pick(['#ffd0e0', '#fff4d8', '#8a5a3a', '#a8f0c8']));
+              SFX.play('blob');
+              b.step++; b.stepT = 0.45; if (b.step >= (phase2 ? 3 : 2)) b.atk = null;
+              break;
+            }
+            case 'sprinkles': {
+              const n = phase2 ? 20 : 16;
+              for (let i = 0; i < n; i++) bossShoot((i / n) * Math.PI * 2 + b.step * 0.3, 5, ['#ff4fd8', '#ffe066', '#7af8ff', '#9aff9a'][i % 4]);
+              SFX.play('shoot');
+              b.step++; b.stepT = 0.55; if (b.step >= 2) b.atk = null;
+              break;
+            }
+            case 'charge': {
+              if (b.step === 0) { b.step = 1; b.stepT = 0.7; UI.floatText(b.x, 2.8, b.z, '?!', '#ff5050'); }
+              else { const l = Math.max(0.01, U.dist(p.x, p.z, b.x, b.z)); b.ddx = (p.x - b.x) / l; b.ddz = (p.z - b.z) / l; b.dashT = 0.5; b.dashHit = false; b.atk = null; SFX.play('dodge'); }
+              break;
+            }
+            case 'nap': {
+              b.tired = 3.6; b.atk = null;
+              UI.floatText(b.x, 3.0, b.z, 'Zzz... corn pop... zzz', '#aaaaff');
+              for (let k = 0; k < 6; k++) particle(b.x, 2.4, b.z, '#ffffff', U.rand(-0.5, 0.5), U.rand(0.5, 1.5), U.rand(-0.5, 0.5), 1.2);
+              break;
+            }
+            case 'freeze': {
+              for (let i = 0; i < 5; i++) {
+                const tx = p.x + U.rand(-2.5, 2.5), tz = p.z + U.rand(-2.5, 2.5);
+                markerFx(tx, tz, 1.3, 1.0);
+                after(1.0, () => {
+                  if (!G.boss || !G.boss.active) return;
+                  ringFx(tx, tz, 1.4, 0x9ad8ff, 0.3);
+                  for (let k = 0; k < 4; k++) particle(tx, 1.5, tz, '#e8f8ff', U.rand(-2, 2), U.rand(1, 3), U.rand(-2, 2), 0.5);
+                  if (U.dist(G.p.x, G.p.z, tx, tz) < 1.4) hurtPlayer(13, tx, tz);
+                });
+              }
+              b.atk = null;
               break;
             }
             case 'wall': {
@@ -1435,7 +1497,7 @@ const G = {
             }
             case 'summon': {
               for (let i = 0; i < 2; i++) {
-                const kind = b.who === 'roby' ? (phase2 ? U.pick(['hound', 'raver']) : U.pick(['barker', 'pup'])) : b.round === 2 ? (phase2 ? 'raver' : U.pick(['pup', 'barker'])) : phase2 ? 'barker' : 'pup';
+                const kind = b.who === 'joe' ? U.pick(['blueagent', 'bluescoop']) : b.who === 'roby' ? (phase2 ? U.pick(['hound', 'raver']) : U.pick(['barker', 'pup'])) : b.round === 2 ? (phase2 ? 'raver' : U.pick(['pup', 'barker'])) : phase2 ? 'barker' : 'pup';
                 const e = spawnEnemy(kind, b.x + U.rand(-2, 2), b.z + U.rand(-2, 2), b.round === 2 ? 4 : 3, 'boss');
                 e.minion = true; e.aggro = true; e.state = 'chase'; e.homeX = b.arena.x; e.homeZ = b.arena.z; b.minions++;
               }
@@ -1477,7 +1539,8 @@ const G = {
   function bossDefeated() {
     const b = G.boss;
     b.active = false;
-    if (b.who === 'roby') G.flags.robyDefeated = true;
+    if (b.who === 'joe') G.flags.joeDefeated = true;
+    else if (b.who === 'roby') G.flags.robyDefeated = true;
     else if (b.round === 2) G.flags.shiveDefeated = true;
     else G.flags.shiveR1Down = true;
     SFX.play('boom'); UI.shake(0.6);
@@ -1485,13 +1548,13 @@ const G = {
     for (const e of G.enemies) if (e.minion) { e.dead = true; removeActor(e); }
     G.enemies = G.enemies.filter((e) => !e.dead);
     for (const pr of G.projectiles) pr.life = -5;
-    const n = b.who === 'roby' ? G.npcs.robyboss : G.npcs.shive;
+    const n = b.who === 'joe' ? G.npcs.joe : b.who === 'roby' ? G.npcs.robyboss : G.npcs.shive;
     n.x = b.x; n.z = b.z; placeActor(n);
     removeActor(b); scene.remove(b.bubble);
     UI.bossBar(false);
-    SFX.startMusic(b.round === 1 ? 'world' : 'end');
+    SFX.startMusic(b.round === 1 || b.round === 4 ? 'world' : 'end');
     G.boss = null;
-    after(0.9, () => (b.who === 'roby' ? UI.openDialogue('robyboss', 'defeated') : UI.openDialogue('shive', b.round === 2 ? 'defeated' : 'escape')));
+    after(0.9, () => (b.who === 'joe' ? UI.openDialogue('joe', 'defeated') : b.who === 'roby' ? UI.openDialogue('robyboss', 'defeated') : UI.openDialogue('shive', b.round === 2 ? 'defeated' : 'escape')));
   }
   // ---- Roby's betrayal ----
   G.robyAmbush = () => {
@@ -1525,6 +1588,13 @@ const G = {
     const home = WORLD.snap(115.5, 38.8); G.npcs.roby.x = home.x; G.npcs.roby.z = home.z; placeActor(G.npcs.roby);
     G.qSet('main', 93);
     UI.toast('You put your dog costume back on. For good this time.', 'level');
+  };
+  G.joeEnd = (kind) => {
+    G.flags.joeEnd = kind;
+    const n = G.npcs.joe;
+    for (let i = 0; i < 24; i++) particle(n.x, 1.5, n.z, U.pick(['#ffd0e0', '#fff4d8', '#3a6aff', '#ffffff']), U.rand(-3, 3), U.rand(2, 5), U.rand(-3, 3), 1);
+    G.xp(400, true);
+    G.qSet('rump2', 30);
   };
   function checkAmbush() {
     const s = G.qStage('main');
@@ -1633,7 +1703,8 @@ const G = {
     for (const k of SAVE_FIELDS) data[k] = G[k];
     // never save mid-boss: put Eli back on the island dock
     if (G.boss && G.boss.active) {
-      if (G.boss.round === 2) { data.px = MAP.festival.cx; data.pz = MAP.festival.z0 + 3; }
+      if (G.boss.round === 4) { data.px = 170; data.pz = 41; }
+      else if (G.boss.round === 2) { data.px = MAP.festival.cx; data.pz = MAP.festival.z0 + 3; }
       else { data.px = MAP.isleDock.x + 0.5; data.pz = MAP.isleDock.z; }
     }
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); if (manual) UI.toast('Game saved.', 'item'); }

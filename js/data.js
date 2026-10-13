@@ -70,6 +70,7 @@ const DATA = (() => {
     sinder_amulet: { name: "Sinder's Eye Amulet", type: 'gear', icon: 'amulet', desc: '+1 Perception. It blinks sometimes. Please ignore that.' },
     council_medal: { name: 'Council Medal', type: 'gear', icon: 'medal', desc: '+10 Speech. Awarded for defeating Ronald Rump in debate.' },
     // --- expansion: consumables & key items ---
+    golden_gavel: { name: 'Golden Gavel', type: 'weapon', wtype: 'melee', dmg: 42, rate: 0.6, range: 2.1, arc: 2.2, kb: 9, icon: 'gavel', value: 600, desc: "The HOA President's gavel. Solid gold. Mostly. ORDER IN THE COURT!" },
     big_bone: { name: 'Giant Bone', type: 'use', heal: 100, icon: 'bone', value: 45, desc: 'Restores 100 HP. Absolutely massive.' },
     vip_pass: { name: 'Dogcore VIP Pass', type: 'quest', icon: 'vip', desc: 'Gets you into the Dogcore Festival. Laminated.' },
     merch_box: { name: 'Merch Box', type: 'quest', icon: 'merch', desc: "A box of Ninefired's festival merch. Mostly bootleg t-shirts." },
@@ -107,6 +108,8 @@ const DATA = (() => {
     pup: { name: 'Goon Pup', hp: 26, spd: 3.5, dmg: 4, range: 1.15, cd: 1.3, xp: 14, bucks: [2, 8], look: { dog: { color: '#d8a868', belly: '#f8e0b8', ear: 'floppy', full: true, eye: '#e02a2a' } } },
     hound: { name: 'Goon Hound', hp: 62, spd: 2.8, dmg: 9, range: 1.35, cd: 1.5, xp: 28, bucks: [5, 14], look: { dog: { color: '#7a4a2a', belly: '#c89868', ear: 'pointy', full: true, eye: '#ff3a3a' }, extras: ['collar'] } },
     barker: { name: 'Goon Barker', hp: 32, spd: 3.0, dmg: 6, range: 8, cd: 1.9, xp: 24, bucks: [4, 10], ranged: true, look: { dog: { color: '#f0f0f0', belly: '#ffffff', ear: 'floppy', full: true, spots: true, eye: '#e02a2a' } } },
+    blueagent: { name: 'Blue Army Agent', hp: 70, spd: 3.3, dmg: 11, range: 1.4, cd: 1.2, xp: 45, bucks: [10, 20], look: { skin: '#e8c0a0', hair: '#2a2a2a', hairStyle: 'buzz', shirt: '#1a3a8a', pants: '#1a2a5a', shoes: '#111111', extras: ['aviators', 'tie'] } },
+    bluescoop: { name: 'Blue Army Ice Cream Goon', hp: 45, spd: 3.0, dmg: 8, range: 8, cd: 1.6, xp: 40, bucks: [8, 16], ranged: true, spread: 2, scoop: true, look: { skin: '#f0c8a8', hair: '#6a4a2a', hairStyle: 'short', shirt: '#3a6aff', pants: '#1a2a5a', shoes: '#ffffff', hat: 'cap', hatColor: '#1a3a8a', extras: ['aviators', 'icecream'] } },
     raver: { name: 'Goon Raver', hp: 40, spd: 3.4, dmg: 7, range: 8, cd: 1.6, xp: 34, bucks: [6, 14], ranged: true, spread: 3, look: { dog: { color: '#3ad0ff', belly: '#ff8ae8', ear: 'pointy', full: true, eye: '#ffe066' }, extras: ['shades'] } },
     rottweiler: { name: 'The Bouncer', hp: 420, spd: 3.2, dmg: 20, range: 1.6, cd: 1.1, xp: 220, bucks: [60, 90], charge: true, scale: 1.5, look: { dog: { color: '#1e1a18', belly: '#a8682a', ear: 'pointy', full: true, eye: '#ff3a3a' }, extras: ['chain', 'shades'] } },
     bigdawg: { name: 'Big Dawg', hp: 480, spd: 2.9, dmg: 22, range: 1.9, cd: 1.2, xp: 300, bucks: [90, 140], charge: true, scale: 1.8, drop: 'glow_nunchucks', look: { dog: { color: '#7a7a82', belly: '#c8c8d0', ear: 'floppy', full: true, eye: '#ff3a3a' }, extras: ['chain', 'shades', 'collar'] } },
@@ -125,6 +128,7 @@ const DATA = (() => {
     squid: { skin: '#f8d8c0', hair: '#2a1a3a', hairStyle: 'long', shirt: '#3aa8a0', pants: '#4a3a2a', shoes: '#2a2a2a', extras: ['antenna', 'bug', 'blush'] },
     sinder: { skin: '#e0c0a0', hair: '#c8c8c8', hairStyle: 'bald', shirt: '#7a6a4a', pants: '#4a4a4a', shoes: '#2a1a0a', extras: ['beard', 'cardigan', 'cane'], beard: '#d8d8d8' },
     rivergrain: { skin: '#f0c8a0', hair: '#aa5a2a', hairStyle: 'short', shirt: '#ffd23a', pants: '#2a6aff', shoes: '#ff3a3a', hat: 'bucket', hatColor: '#4ad0ff', extras: ['clown', 'star', 'smile'] },
+    joe: { skin: '#f2d0b8', hair: '#f4f4f4', hairStyle: 'short', shirt: '#1a1f3a', pants: '#1a1f3a', shoes: '#111111', extras: ['longtie', 'aviators', 'smile', 'icecream'], tieColor: '#2a5aff' },
     roby_boss: { skin: '#f0d0b0', hair: '#7a4a2a', hairStyle: 'short', dog: { color: '#c8884a', belly: '#f0d0a0', ear: 'floppy' }, hood: '#c8884a', hat: 'fedora', extras: ['glasses', 'neckbeard'] },
     ninefired: { skin: '#eab896', hair: '#2a1a10', hairStyle: 'buzz', shirt: '#c8102e', pants: '#c8102e', shoes: '#f8f8f8', hat: 'cap', hatColor: '#1a1a1a', extras: ['stripes', 'chain', 'smile'] },
     rump: { skin: '#f0a050', hair: '#f8d870', hairStyle: 'swoop', shirt: '#1a1f3a', pants: '#1a1f3a', shoes: '#111111', extras: ['longtie'] },
@@ -144,6 +148,7 @@ const DATA = (() => {
     { id: 'fox', name: 'FlowingFox', look: 'fox', x: 119, z: 61, iq: 104, iqNote: 'tactical genius (self-assessed)' },
     { id: 'rivergrain', name: 'Rivergrain', look: 'rivergrain', x: 85, z: 59.8, iq: 99, iqNote: 'jokestar' },
     { id: 'shive', name: 'Shive', look: 'shive', x: 68, z: 70, hidden: true, iq: 140, iqNote: 'he claims 200' },
+    { id: 'joe', name: 'Sleepy Joe', look: 'joe', x: 177, z: 54.5, iq: "C'mon, man", iqNote: '"Took the test. Aced it. Big test."', scale: 1.25 },
     { id: 'robyboss', name: 'Roby Mink', look: 'roby_boss', x: 68, z: 70, iq: 'OVER 9000', iqNote: 'self-reported, again', scale: 1.35 },
     { id: 'ninefired', name: 'Ninefired', look: 'ninefired', x: 162.5, z: 127.2, iq: 109, iqNote: 'proper street smart, innit' },
     { id: 'rump', name: 'Ronald Rump', look: 'rump', x: 124, z: 27.3, iq: 'HUGE', iqNote: 'he says nobody has a bigger IQ, believe him' },
@@ -215,6 +220,7 @@ const DATA = (() => {
     { id: 'terrell', x: 40, z: 186, r: 3, members: ['hound', 'barker', 'raver'], lvl: 3, respawn: 200 },
     { id: 'milake', x: 120, z: 158, r: 3, members: ['pup', 'raver', 'barker'], lvl: 3, respawn: 200 },
     { id: 'i77', x: 152, z: 76, r: 3, members: ['raver', 'pup', 'pup'], lvl: 3, respawn: 220 },
+    { id: 'bluearmy', x: 177, z: 54.5, r: 3, members: ['blueagent', 'blueagent', 'bluescoop', 'bluescoop', 'blueagent'], lvl: 4, when: (g) => g.qStage('rump2') === 10, respawn: 0 },
     { id: 'festival', x: 170.5, z: 170, r: 4, members: ['raver', 'raver', 'hound', 'barker', 'alpha'], lvl: 4, when: (g) => g.flags.gateOpen, respawn: 0 },
   ];
 
@@ -343,6 +349,15 @@ const DATA = (() => {
         10: { text: "Get rid of the goon hecklers at Rivergrain's Pier.", target: [87, 57] },
         20: { text: 'Tell Rivergrain the hecklers are gone.', target: 'npc:rivergrain' },
         100: { text: 'The Jokestar of Lake Norman rides again.', done: true },
+      },
+    },
+    rump2: {
+      name: 'Make Lake Norman Great Again', giver: 'Ronald Rump',
+      stages: {
+        10: { text: "Defeat Sleepy Joe's Blue Army at Davidson College.", target: [177, 54.5] },
+        20: { text: 'The Blue Army is beaten! Find Sleepy Joe on the college quad and challenge him.', target: 'npc:joe' },
+        30: { text: 'Tell Ronald Rump how it went at the Civic Hall.', target: 'npc:rump' },
+        100: { text: 'The Lake Norman HOA is (more or less) at peace.', done: true },
       },
     },
     jack2: {

@@ -93,7 +93,7 @@ const SPR = (() => {
     if (has('bolt')) { px(g, 16, by(16), '#ffe066'); px(g, 15, by(17), '#ffe066'); rect(g, 15, by(18), 2, 1, '#ffe066'); px(g, 16, by(19), '#ffe066'); px(g, 15, by(20), '#ffe066'); }
     // belt
     if (!d.robe && !d.dog) rect(g, 12, by(22), 7, 1, S(pants, 0.6));
-    if (has('longtie')) { rect(g, 15, by(16), 2, 7, '#d0202a'); rect(g, 15, by(23), 2, 1, '#a01820'); px(g, 15, by(16), '#ff4a4a'); }
+    if (has('longtie')) { const tc = d.tieColor || '#d0202a'; rect(g, 15, by(16), 2, 7, tc); rect(g, 15, by(23), 2, 1, S(tc, 0.75)); px(g, 15, by(16), S(tc, 1.3)); }
     // chain (bling)
     if (has('chain')) { rect(g, 13, by(15 + short), 5, 1, '#ffd23a'); px(g, 13, by(16), '#ffd23a'); px(g, 17, by(16), '#ffd23a'); rect(g, 14, by(17), 3, 1, '#ffd23a'); px(g, 15, by(18), '#fff59a'); }
     // front arm
@@ -105,6 +105,7 @@ const SPR = (() => {
       srect(g, 17 + sw, by(16 + short), 2, 6, S(torsoC, 0.92));
       rect(g, 17 + sw, by(22), 2, 1, d.dog ? S(d.dog.color, 0.6) : skin);
     }
+    if (has('icecream') && frame !== 3) { const ix = 19 + (frame === 1 ? 1 : frame === 2 ? -1 : 0); rect(g, ix, by(19), 2, 3, '#d8a05a'); px(g, ix, by(22), '#b8803a'); rect(g, ix - 1, by(17), 3, 2, '#ffb8d0'); px(g, ix, by(16), '#8a5a3a'); }
     if (has('cane') && frame !== 3) { rect(g, 20, by(20), 1, 10 - bob, '#6a4a2a'); px(g, 19, by(20), '#6a4a2a'); }
     // neck
     rect(g, 14, by(14), 3, 1, d.dog && d.dog.full ? d.dog.color : S(skin, 0.85));
@@ -158,6 +159,7 @@ const SPR = (() => {
       if (has('beard')) { rect(g, 14, by(hy + 5), 6, 4, d.beard || hc); px(g, 18, by(hy + 6), S(d.beard || hc, 0.6)); }
       if (has('neckbeard')) { rect(g, 14, by(hy + 7), 6, 2, hc); }
       if (has('mustache')) { rect(g, 16, by(hy + 5), 4, 1, d.hair || '#6a4a2a'); px(g, 20, by(hy + 6), d.hair || '#6a4a2a'); }
+      if (has('aviators')) { rect(g, 14, by(hy + 3), 6, 2, '#1a1a2a'); rect(g, 14, by(hy + 2), 6, 1, '#d8b040'); px(g, 18, by(hy + 3), '#5a7aaa'); px(g, 15, by(hy + 3), '#5a7aaa'); }
       if (has('glasses')) { rect(g, 14, by(hy + 3), 6, 1, '#222'); px(g, 15, by(hy + 4), '#9ad8ff'); px(g, 18, by(hy + 4), '#9ad8ff'); }
       if (has('bow')) { rect(g, 12, by(hy - 2), 2, 2, '#ff6fa8'); rect(g, 15, by(hy - 2), 2, 2, '#ff6fa8'); px(g, 14, by(hy - 1), '#d03a78'); }
       if (has('antenna')) { px(g, 14, by(hy - 2), '#222'); px(g, 13, by(hy - 3), '#222'); px(g, 13, by(hy - 4), '#5cf06a'); px(g, 18, by(hy - 2), '#222'); px(g, 19, by(hy - 3), '#222'); px(g, 19, by(hy - 4), '#5cf06a'); rect(g, 12, by(hy - 1), 8, 1, '#5cf06a'); }
@@ -253,6 +255,7 @@ const SPR = (() => {
       case 'scarf': R(3, 4, 10, 4, '#ff8ac8'); R(9, 8, 3, 6, '#ff8ac8'); P(4, 5, '#ffffff'); P(7, 6, '#ffffff'); P(10, 11, '#ffffff'); R(9, 13, 3, 1, '#d03a78'); break;
       case 'amulet': for (let i = 0; i < 6; i++) { P(4 + i, 2 + (i >> 1), '#c8a050'); P(11 - i, 2 + (i >> 1), '#c8a050'); } R(5, 6, 6, 6, '#3a2a4a'); R(6, 7, 4, 4, '#ffffff'); R(7, 8, 2, 2, '#5cf06a'); P(7, 8, '#111'); break;
       case 'medal': R(5, 2, 2, 5, '#3a6aff'); R(9, 2, 2, 5, '#d02a2a'); R(4, 7, 8, 7, '#ffd23a'); R(5, 8, 6, 5, '#ffe88a'); P(7, 10, '#c89a1a'); P(8, 10, '#c89a1a'); break;
+      case 'gavel': R(7, 8, 2, 7, '#8a5a2a'); R(3, 3, 10, 5, '#ffd23a'); R(3, 3, 10, 1, '#fff59a'); R(2, 4, 1, 3, '#c89a1a'); R(13, 4, 1, 3, '#c89a1a'); break;
       case 'vip': R(2, 4, 12, 8, '#1a1a2a'); R(3, 5, 10, 6, '#ff4fd8'); R(4, 6, 3, 1, '#ffe066'); R(4, 8, 8, 1, '#7af8ff'); R(7, 2, 2, 2, '#888'); break;
       case 'merch': R(2, 5, 12, 9, '#c8a068'); R(2, 5, 12, 2, '#a8804a'); R(6, 8, 4, 3, '#ff4fd8'); P(7, 9, '#ffffff'); break;
       case 'mixtape': R(2, 4, 12, 8, '#2a2a3a'); R(3, 5, 10, 3, '#ffe066'); R(4, 9, 2, 2, '#888'); R(10, 9, 2, 2, '#888'); R(6, 10, 4, 1, '#555'); break;
