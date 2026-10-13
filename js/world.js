@@ -1,8 +1,20 @@
 // ---------- Builds the 3D isometric world from the generated map ----------
 const WORLD = (() => {
   let map = null;
-  const lam = (c, extra) => new THREE.MeshPhongMaterial(Object.assign({ color: c, flatShading: true, shininess: 0, specular: 0x000000 }, extra || {}));
-  const basic = (c, extra) => new THREE.MeshBasicMaterial(Object.assign({ color: c }, extra || {}));
+  // materials are cached by colour: far fewer GPU state changes
+  const matCache = new Map();
+  const lam = (c, extra) => {
+    if (extra) return new THREE.MeshPhongMaterial(Object.assign({ color: c, flatShading: true, shininess: 0, specular: 0x000000 }, extra));
+    const k = 'p' + c;
+    if (!matCache.has(k)) matCache.set(k, new THREE.MeshPhongMaterial({ color: c, flatShading: true, shininess: 0, specular: 0x000000 }));
+    return matCache.get(k);
+  };
+  const basic = (c, extra) => {
+    if (extra) return new THREE.MeshBasicMaterial(Object.assign({ color: c }, extra));
+    const k = 'b' + c;
+    if (!matCache.has(k)) matCache.set(k, new THREE.MeshBasicMaterial({ color: c }));
+    return matCache.get(k);
+  };
   const anim = { water: null, barrier: null, orbs: [], flags: [], lamps: [] };
 
   const TILE_COL = {
@@ -27,26 +39,50 @@ const WORLD = (() => {
     const col = new THREE.Color();
     const dummy = new THREE.Object3D();
 
-    // ---- ground tiles ----
-    const geo = new THREE.BoxGeometry(1, 1, 1);
-    const ground = new THREE.InstancedMesh(geo, lam(0xffffff), W * W);
-    let n = 0;
+    // ---- static scenery is merged into chunks (one draw call each, culled when off-screen) ----
+    const CH = 20, NC = Math.ceil(W / CH);
+    const chunks = new Array(NC * NC);
+    const chunkOf = (x, z) => {
+      const i = Math.min(NC - 1, Math.max(0, Math.floor(z / CH))) * NC + Math.min(NC - 1, Math.max(0, Math.floor(x / CH)));
+      return chunks[i] || (chunks[i] = { pos: [], nor: [], col: [] });
+    };
+    const pushTri = (c, a, b, d, n, cl) => {
+      c.pos.push(a[0], a[1], a[2], b[0], b[1], b[2], d[0], d[1], d[2]);
+      for (let k = 0; k < 3; k++) { c.nor.push(n[0], n[1], n[2]); c.col.push(cl.r, cl.g, cl.b); }
+    };
+    const quad = (c, p0, p1, p2, p3, n, cl) => { pushTri(c, p0, p1, p2, n, cl); pushTri(c, p0, p2, p3, n, cl); };
+    // template geometry appended with a transform (flat normals)
+    const tmpl = (g) => { const ng = g.toNonIndexed(); ng.computeVertexNormals(); return ng; };
+    const v = new THREE.Vector3(), nm = new THREE.Matrix3();
+    const append = (c, g, m, cl) => {
+      const P = g.attributes.position, N = g.attributes.normal;
+      nm.getNormalMatrix(m);
+      for (let i = 0; i < P.count; i++) {
+        v.fromBufferAttribute(P, i).applyMatrix4(m); c.pos.push(v.x, v.y, v.z);
+        v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); c.nor.push(v.x, v.y, v.z);
+        c.col.push(cl.r, cl.g, cl.b);
+      }
+    };
+    const heightAt = (x, z) => {
+      if (x < 0 || z < 0 || x >= W || z >= W) return -1.5;
+      const t = map.tiles[z * W + x];
+      return TILE_H[t] !== undefined ? TILE_H[t] : 0;
+    };
     for (let z = 0; z < W; z++) for (let x = 0; x < W; x++) {
       const t = map.tiles[z * W + x];
-      const h = TILE_H[t] !== undefined ? TILE_H[t] : 0;
-      dummy.position.set(x + 0.5, h - 0.5, z + 0.5);
-      dummy.updateMatrix();
-      ground.setMatrixAt(n, dummy.matrix);
+      const h = heightAt(x, z);
       const base = TILE_COL[t] || '#ff00ff';
       let j = 0.93 + U.hash(x * 3 + 1, z * 5 + 7) * 0.12;
       if (t === T.GRASS || t === T.FOREST || t === T.MEADOW) j *= 0.94 + U.fbm(x * 0.2, z * 0.2) * 0.14;
       if (t === T.WATER) j = 0.8 + Math.min(0.4, Math.max(0, map.lakeVal[z * W + x] + 3) * 0.1);
       col.set(base).multiplyScalar(j);
-      ground.setColorAt(n, col);
-      n++;
+      const c = chunkOf(x, z);
+      quad(c, [x, h, z], [x, h, z + 1], [x + 1, h, z + 1], [x + 1, h, z], [0, 1, 0], col);
+      // only the +x and +z sides can ever face the camera
+      const hx = heightAt(x + 1, z), hz = heightAt(x, z + 1);
+      if (hx < h - 0.001) quad(c, [x + 1, h, z], [x + 1, h, z + 1], [x + 1, hx, z + 1], [x + 1, hx, z], [1, 0, 0], col);
+      if (hz < h - 0.001) quad(c, [x, h, z + 1], [x, hz, z + 1], [x + 1, hz, z + 1], [x + 1, h, z + 1], [0, 0, 1], col);
     }
-    ground.instanceMatrix.needsUpdate = true;
-    scene.add(ground);
 
     // ---- water ----
     const wtex = pixelTex(32, 32, (ctx) => {
@@ -62,78 +98,76 @@ const WORLD = (() => {
     scene.add(water);
     anim.water = wtex;
 
-    // ---- road markings (instanced small boxes) ----
-    const marks = [];
+    // ---- road markings ----
+    const markCol = new THREE.Color(0xf2dc7a);
     for (let z = 1; z < W - 1; z++) for (let x = 1; x < W - 1; x++) {
       if (map.tiles[z * W + x] !== T.ROAD) continue;
-      // horizontal 2-wide road: tiles at z and z+1 are road, z-1 and z+2 not
       const up = map.tiles[(z - 1) * W + x], dn = map.tiles[(z + 1) * W + x];
       const lf = map.tiles[z * W + x - 1], rt = map.tiles[z * W + x + 1];
-      if (dn === T.ROAD && up !== T.ROAD && x % 3 === 0) marks.push([x + 0.5, z + 1, 0.6, 0.1]);
-      if (rt === T.ROAD && lf !== T.ROAD && z % 3 === 0) marks.push([x + 1, z + 0.5, 0.1, 0.6]);
-    }
-    if (marks.length) {
-      const mm = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.02, 1), basic(0xe8d070), marks.length);
-      marks.forEach((m, i) => { dummy.position.set(m[0], 0.02, m[1]); dummy.scale.set(m[2], 1, m[3]); dummy.updateMatrix(); mm.setMatrixAt(i, dummy.matrix); });
-      dummy.scale.set(1, 1, 1);
-      scene.add(mm);
+      const y = 0.025;
+      if (dn === T.ROAD && up !== T.ROAD && x % 3 === 0) quad(chunkOf(x, z), [x + 0.2, y, z + 0.95], [x + 0.2, y, z + 1.05], [x + 0.8, y, z + 1.05], [x + 0.8, y, z + 0.95], [0, 1, 0], markCol);
+      if (rt === T.ROAD && lf !== T.ROAD && z % 3 === 0) quad(chunkOf(x, z), [x + 0.95, y, z + 0.2], [x + 0.95, y, z + 0.8], [x + 1.05, y, z + 0.8], [x + 1.05, y, z + 0.2], [0, 1, 0], markCol);
     }
 
-    // ---- trees ----
-    const pines = map.trees.filter((t) => t.kind === 'pine');
-    const oaks = map.trees.filter((t) => t.kind === 'oak');
-    const trunkGeo = new THREE.BoxGeometry(0.28, 0.9, 0.28);
-    const trunks = new THREE.InstancedMesh(trunkGeo, lam(0x6a4a2a), map.trees.length);
-    map.trees.forEach((t, i) => { dummy.position.set(t.x + 0.5, 0.45 * t.s, t.z + 0.5); dummy.scale.set(t.s, t.s, t.s); dummy.updateMatrix(); trunks.setMatrixAt(i, dummy.matrix); });
-    scene.add(trunks);
-    const cone1 = new THREE.InstancedMesh(new THREE.ConeGeometry(0.85, 1.3, 6), lam(0xffffff), pines.length);
-    const cone2 = new THREE.InstancedMesh(new THREE.ConeGeometry(0.6, 1.1, 6), lam(0xffffff), pines.length);
-    pines.forEach((t, i) => {
-      const s = t.s;
-      dummy.rotation.y = U.hash(t.x, t.z) * 3;
-      dummy.position.set(t.x + 0.5, 1.15 * s, t.z + 0.5); dummy.scale.set(s, s, s); dummy.updateMatrix(); cone1.setMatrixAt(i, dummy.matrix);
-      dummy.position.set(t.x + 0.5, 1.85 * s, t.z + 0.5); dummy.updateMatrix(); cone2.setMatrixAt(i, dummy.matrix);
-      col.set('#2f6a3a').multiplyScalar(0.85 + U.hash(t.z, t.x) * 0.3);
-      cone1.setColorAt(i, col); cone2.setColorAt(i, col.multiplyScalar(1.12));
-    });
-    dummy.rotation.set(0, 0, 0);
-    scene.add(cone1, cone2);
-    const leaf1 = new THREE.InstancedMesh(new THREE.BoxGeometry(1.25, 0.95, 1.25), lam(0xffffff), oaks.length);
-    const leaf2 = new THREE.InstancedMesh(new THREE.BoxGeometry(0.8, 0.5, 0.8), lam(0xffffff), oaks.length);
-    oaks.forEach((t, i) => {
-      const s = t.s;
-      dummy.position.set(t.x + 0.5, 1.25 * s, t.z + 0.5); dummy.scale.set(s, s, s); dummy.updateMatrix(); leaf1.setMatrixAt(i, dummy.matrix);
-      dummy.position.set(t.x + 0.5, 1.9 * s, t.z + 0.5); dummy.updateMatrix(); leaf2.setMatrixAt(i, dummy.matrix);
-      col.set(U.hash(t.x, t.z) > 0.85 ? '#c8783a' : '#4a8a3a').multiplyScalar(0.85 + U.hash(t.z, t.x) * 0.3);
-      leaf1.setColorAt(i, col); leaf2.setColorAt(i, col.multiplyScalar(1.15));
-    });
-    dummy.scale.set(1, 1, 1);
-    scene.add(leaf1, leaf2);
-
-    // ---- rocks / bushes / flowers ----
-    if (map.rocks.length) {
-      const rk = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.42), lam(0xffffff), map.rocks.length);
-      map.rocks.forEach((r, i) => { dummy.position.set(r.x + 0.5, 0.2, r.z + 0.5); dummy.scale.set(r.s * 1.3, r.s, r.s * 1.2); dummy.rotation.y = r.s * 5; dummy.updateMatrix(); rk.setMatrixAt(i, dummy.matrix); col.set('#8a8a92').multiplyScalar(0.8 + r.s * 0.4); rk.setColorAt(i, col); });
-      scene.add(rk);
+    // ---- trees, rocks, bushes, flowers ----
+    const G_TRUNK = tmpl(new THREE.BoxGeometry(0.28, 0.9, 0.28));
+    const G_CONE1 = tmpl(new THREE.ConeGeometry(0.85, 1.3, 6));
+    const G_CONE2 = tmpl(new THREE.ConeGeometry(0.6, 1.1, 6));
+    const G_LEAF1 = tmpl(new THREE.BoxGeometry(1.25, 0.95, 1.25));
+    const G_LEAF2 = tmpl(new THREE.BoxGeometry(0.8, 0.5, 0.8));
+    const G_ROCK = tmpl(new THREE.DodecahedronGeometry(0.42));
+    const G_BUSH = tmpl(new THREE.IcosahedronGeometry(0.38, 0));
+    const G_FLOWER = tmpl(new THREE.BoxGeometry(0.14, 0.14, 0.14));
+    const trunkCol = new THREE.Color(0x6a4a2a);
+    for (const t of map.trees) {
+      const c = chunkOf(t.x, t.z), s2 = t.s;
+      dummy.rotation.set(0, 0, 0); dummy.scale.set(s2, s2, s2);
+      dummy.position.set(t.x + 0.5, 0.45 * s2, t.z + 0.5); dummy.updateMatrix(); append(c, G_TRUNK, dummy.matrix, trunkCol);
+      if (t.kind === 'pine') {
+        dummy.rotation.y = U.hash(t.x, t.z) * 3;
+        col.set('#2f6a3a').multiplyScalar(0.85 + U.hash(t.z, t.x) * 0.3);
+        dummy.position.set(t.x + 0.5, 1.15 * s2, t.z + 0.5); dummy.updateMatrix(); append(c, G_CONE1, dummy.matrix, col);
+        col.multiplyScalar(1.12);
+        dummy.position.set(t.x + 0.5, 1.85 * s2, t.z + 0.5); dummy.updateMatrix(); append(c, G_CONE2, dummy.matrix, col);
+      } else {
+        col.set(U.hash(t.x, t.z) > 0.85 ? '#c8783a' : '#4a8a3a').multiplyScalar(0.85 + U.hash(t.z, t.x) * 0.3);
+        dummy.position.set(t.x + 0.5, 1.25 * s2, t.z + 0.5); dummy.updateMatrix(); append(c, G_LEAF1, dummy.matrix, col);
+        col.multiplyScalar(1.15);
+        dummy.position.set(t.x + 0.5, 1.9 * s2, t.z + 0.5); dummy.updateMatrix(); append(c, G_LEAF2, dummy.matrix, col);
+      }
+    }
+    for (const r of map.rocks) {
+      dummy.position.set(r.x + 0.5, 0.2, r.z + 0.5); dummy.scale.set(r.s * 1.3, r.s, r.s * 1.2); dummy.rotation.set(0, r.s * 5, 0); dummy.updateMatrix();
+      col.set('#8a8a92').multiplyScalar(0.8 + r.s * 0.4);
+      append(chunkOf(r.x, r.z), G_ROCK, dummy.matrix, col);
     }
     dummy.scale.set(1, 1, 1); dummy.rotation.set(0, 0, 0);
-    if (map.bushes.length) {
-      const bu = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.38, 0), lam(0xffffff), map.bushes.length);
-      map.bushes.forEach((b, i) => { dummy.position.set(b.x + 0.3 + U.hash(b.x, 4) * 0.4, 0.22, b.z + 0.3 + U.hash(b.z, 9) * 0.4); dummy.updateMatrix(); bu.setMatrixAt(i, dummy.matrix); col.set('#3d7a2e').multiplyScalar(0.9 + U.hash(b.x, b.z) * 0.3); bu.setColorAt(i, col); });
-      scene.add(bu);
+    for (const b of map.bushes) {
+      dummy.position.set(b.x + 0.3 + U.hash(b.x, 4) * 0.4, 0.22, b.z + 0.3 + U.hash(b.z, 9) * 0.4); dummy.updateMatrix();
+      col.set('#3d7a2e').multiplyScalar(0.9 + U.hash(b.x, b.z) * 0.3);
+      append(chunkOf(b.x, b.z), G_BUSH, dummy.matrix, col);
     }
-    if (map.flowers.length) {
-      const FC = ['#ff8ac8', '#ffe066', '#ffffff', '#9a8aff', '#ff6a4a', '#7af8ff'];
-      const fl = new THREE.InstancedMesh(new THREE.BoxGeometry(0.14, 0.14, 0.14), basic(0xffffff), map.flowers.length * 3);
-      let k = 0;
-      map.flowers.forEach((f) => {
-        for (let q = 0; q < 3; q++) {
-          dummy.position.set(f.x + U.hash(f.x + q, f.z) * 0.9 + 0.05, 0.08, f.z + U.hash(f.z, f.x + q) * 0.9 + 0.05);
-          dummy.updateMatrix(); fl.setMatrixAt(k, dummy.matrix); col.set(FC[f.c]); fl.setColorAt(k, col); k++;
-        }
-      });
-      scene.add(fl);
+    const FC = ['#ff8ac8', '#ffe066', '#ffffff', '#9a8aff', '#ff6a4a', '#7af8ff'];
+    for (const f of map.flowers) {
+      for (let q = 0; q < 3; q++) {
+        dummy.position.set(f.x + U.hash(f.x + q, f.z) * 0.9 + 0.05, 0.08, f.z + U.hash(f.z, f.x + q) * 0.9 + 0.05); dummy.updateMatrix();
+        col.set(FC[f.c]).multiplyScalar(1.15);
+        append(chunkOf(f.x, f.z), G_FLOWER, dummy.matrix, col);
+      }
     }
+
+    // ---- turn every chunk into one mesh ----
+    const chunkMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    for (const c of chunks) {
+      if (!c || !c.pos.length) continue;
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(c.pos, 3));
+      g.setAttribute('normal', new THREE.Float32BufferAttribute(c.nor, 3));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(c.col, 3));
+      g.computeBoundingSphere();
+      scene.add(new THREE.Mesh(g, chunkMat));
+    }
+    [G_TRUNK, G_CONE1, G_CONE2, G_LEAF1, G_LEAF2, G_ROCK, G_BUSH, G_FLOWER].forEach((g) => g.dispose());
 
     // ---- buildings ----
     for (const b of map.buildings) scene.add(makeBuilding(b));

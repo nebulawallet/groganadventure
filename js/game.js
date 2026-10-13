@@ -32,6 +32,7 @@ const G = {
   scene.add(sun);
   let lowW = 320, lowH = 180, pixScale = 3;
   function resize() {
+    if (!innerWidth || !innerHeight) return; // hidden / minimised window
     // touch devices: show more of the world on small screens (fractional scale is fine with pixelated upscaling)
     pixScale = G.touch.on ? Math.max(1, Math.min(innerWidth, innerHeight) / 250) : Math.max(2, Math.round(innerHeight / 330));
     lowW = Math.ceil(innerWidth / pixScale); lowH = Math.ceil(innerHeight / pixScale);
@@ -41,7 +42,7 @@ const G = {
     cam.updateProjectionMatrix();
   }
   addEventListener('resize', resize); resize();
-  G.scene = scene; G.cam = cam;
+  G.scene = scene; G.cam = cam; G.renderer = renderer;
 
   const anim = WORLD.build(scene);
   const MAP = WORLD.map;

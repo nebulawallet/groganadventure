@@ -76,19 +76,23 @@ const UI = (() => {
   }
 
   // ======================= HUD =======================
+  // only touch the DOM when something actually changed (avoids layout work on phones)
+  const setHTML = (id, html) => { const e = $(id); if (e._h !== html) { e._h = html; e.innerHTML = html; } };
+  const setText = (id, txt) => { const e = $(id); if (e._t !== txt) { e._t = txt; e.textContent = txt; } };
+  const setW = (id, pct) => { const e = $(id); const v = pct.toFixed(1) + '%'; if (e._w !== v) { e._w = v; e.style.width = v; } };
   let lastWeaponKey = '';
   const npcLabels = {};
   function hud(force) {
     if (!G.p) return;
     $('hud').classList.remove('hidden');
     const mh = G.maxHp(), ma = G.maxAp();
-    $('hpfill').style.width = (100 * Math.max(0, G.hp) / mh) + '%';
-    $('hptext').textContent = `HP ${Math.ceil(Math.max(0, G.hp))}/${mh}`;
-    $('apfill').style.width = (100 * G.ap / ma) + '%';
-    $('aptext').textContent = `AP ${Math.floor(G.ap)}/${ma}`;
-    $('xpfill').style.width = (100 * G.xpCur / G.xpNext()) + '%';
-    $('lvl').textContent = `LVL ${G.level}`;
-    $('bucks').textContent = `$${G.bucks}`;
+    setW('hpfill', 100 * Math.max(0, G.hp) / mh);
+    setText('hptext', `HP ${Math.ceil(Math.max(0, G.hp))}/${mh}`);
+    setW('apfill', 100 * G.ap / ma);
+    setText('aptext', `AP ${Math.floor(G.ap)}/${ma}`);
+    setW('xpfill', 100 * G.xpCur / G.xpNext());
+    setText('lvl', `LVL ${G.level}`);
+    setText('bucks', `$${G.bucks}`);
     $('lvlup').classList.toggle('hidden', !(G.pendingPerk || G.pendingSkill || G.pendingSpecial));
     // weapons
     const wk = G.equipped.melee + '|' + G.equipped.ranged + '|' + G.look;
@@ -106,14 +110,14 @@ const UI = (() => {
     let ab = `<span class="${p.dodgeCd > 0 ? 'cd' : ''}">[SPACE] Dodge</span><span class="${G.barkTime ? 'on' : ''}">[Q] B.A.R.K.</span><span>[H] Heal ×${heals}</span>`;
     if (G.hasPerk('megabark')) ab += `<span class="${p.barkCd > 0 ? 'cd' : ''}">[F] Mega Bark${p.barkCd > 0 ? ' ' + Math.ceil(p.barkCd) : ''}</span>`;
     if (G.has('dog_whistle')) ab += `<span class="${p.whistleCd > 0 ? 'cd' : ''}">[G] Whistle${p.whistleCd > 0 ? ' ' + Math.ceil(p.whistleCd) : ''}</span>`;
-    $('abilities').innerHTML = ab;
+    setHTML('abilities', ab);
     // tracked quest
     let qid = G.tracked;
     if (!DATA.QUESTS[qid] || !G.qStage(qid) && qid !== 'main') qid = 'main';
     const q = DATA.QUESTS[qid], st = q.stages[G.qStage(qid)];
     if (st) {
       const txt = typeof st.text === 'function' ? st.text(G) : st.text;
-      $('tracker').innerHTML = `<div class="qname">${q.main ? '★ ' : ''}${esc(q.name)}</div><div>${esc(txt)}</div><div class="small">[J] Quests · [M] Map</div>`;
+      setHTML('tracker', `<div class="qname">${q.main ? '★ ' : ''}${esc(q.name)}</div><div>${esc(txt)}</div><div class="small">[J] Quests · [M] Map</div>`);
     }
     // quest pointer
     const tgt = G.questTarget(qid);
