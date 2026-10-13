@@ -125,6 +125,7 @@ const DATA = (() => {
     squid: { skin: '#f8d8c0', hair: '#2a1a3a', hairStyle: 'long', shirt: '#3aa8a0', pants: '#4a3a2a', shoes: '#2a2a2a', extras: ['antenna', 'bug', 'blush'] },
     sinder: { skin: '#e0c0a0', hair: '#c8c8c8', hairStyle: 'bald', shirt: '#7a6a4a', pants: '#4a4a4a', shoes: '#2a1a0a', extras: ['beard', 'cardigan', 'cane'], beard: '#d8d8d8' },
     rivergrain: { skin: '#f0c8a0', hair: '#aa5a2a', hairStyle: 'short', shirt: '#ffd23a', pants: '#2a6aff', shoes: '#ff3a3a', hat: 'bucket', hatColor: '#4ad0ff', extras: ['clown', 'star', 'smile'] },
+    roby_boss: { skin: '#f0d0b0', hair: '#7a4a2a', hairStyle: 'short', dog: { color: '#c8884a', belly: '#f0d0a0', ear: 'floppy' }, hood: '#c8884a', hat: 'fedora', extras: ['glasses', 'neckbeard'] },
     ninefired: { skin: '#eab896', hair: '#2a1a10', hairStyle: 'buzz', shirt: '#c8102e', pants: '#c8102e', shoes: '#f8f8f8', hat: 'cap', hatColor: '#1a1a1a', extras: ['stripes', 'chain', 'smile'] },
     rump: { skin: '#f0a050', hair: '#f8d870', hairStyle: 'swoop', shirt: '#1a1f3a', pants: '#1a1f3a', shoes: '#111111', extras: ['longtie'] },
     jakub: { skin: '#f2cfb0', hair: '#b8864a', hairStyle: 'short', shirt: '#f4f4f4', pants: '#3a3a4a', shoes: '#4a2a1a', hat: 'cap', hatColor: '#6a6a6a', extras: ['polish', 'mustache', 'smile'] },
@@ -143,6 +144,7 @@ const DATA = (() => {
     { id: 'fox', name: 'FlowingFox', look: 'fox', x: 119, z: 61, iq: 104, iqNote: 'tactical genius (self-assessed)' },
     { id: 'rivergrain', name: 'Rivergrain', look: 'rivergrain', x: 85, z: 59.8, iq: 99, iqNote: 'jokestar' },
     { id: 'shive', name: 'Shive', look: 'shive', x: 68, z: 70, hidden: true, iq: 140, iqNote: 'he claims 200' },
+    { id: 'robyboss', name: 'Roby Mink', look: 'roby_boss', x: 68, z: 70, iq: 'OVER 9000', iqNote: 'self-reported, again', scale: 1.35 },
     { id: 'ninefired', name: 'Ninefired', look: 'ninefired', x: 162.5, z: 127.2, iq: 109, iqNote: 'proper street smart, innit' },
     { id: 'rump', name: 'Ronald Rump', look: 'rump', x: 124, z: 27.3, iq: 'HUGE', iqNote: 'he says nobody has a bigger IQ, believe him' },
     { id: 'jakub', name: 'Jakub', look: 'jakub', x: 174.5, z: 126.8, iq: 126, iqNote: 'certified funny in two languages' },
@@ -229,7 +231,7 @@ const DATA = (() => {
   ];
   // interaction spots: fishing holes and watchtowers (positions snapped to the shore / tower base in game)
   const SPOTS = [
-    { id: 'fish_pier', kind: 'fish', at: 'pier' },
+    { id: 'fish_pier', kind: 'fish', x: 84, z: 56 },
     { id: 'fish_ramsey', kind: 'fish', x: 139, z: 91 },
     { id: 'fish_mil', kind: 'fish', x: 100, z: 172 },
     { id: 'tower1', kind: 'tower', x: 186.5, z: 66.5 },
@@ -272,7 +274,10 @@ const DATA = (() => {
         87: { text: (g) => `Defend Aldersprings Lane from Shive's goon raid!${g.raidWave ? ` (Wave ${g.raidWave()}/3)` : ''}`, target: [108, 40.5] },
         88: { text: 'The lane is safe! Head south to the Dogcore Festival in Huntersville and get past the Bouncer.', target: 'npc:bouncer' },
         89: { text: 'Storm the festival and defeat Shive on the main stage before the midnight bass drop!', target: 'npc:shive' },
-        90: { text: 'You got your costume back! Head home and tell Vea.', target: 'npc:vea' },
+        90: { text: 'You got your costume back! Head home to Aldersprings Lane and tell Vea.', target: 'npc:vea' },
+        91: { text: "ROBY MINK BETRAYED YOU and stole your costume! Chase him to Shive's Island: ride the Hydro-Scooter from Rivergrain's Pier.", target: 'pier' },
+        92: { text: 'Defeat Roby Mink, Lord of the Upvotes, at the Spire and take your costume back!', target: 'npc:robyboss' },
+        93: { text: 'You got your costume back. AGAIN. Head home and tell Vea everything.', target: 'npc:vea' },
         100: { text: 'Lake Norman is safe. Eli is a dog again.', done: true },
       },
     },

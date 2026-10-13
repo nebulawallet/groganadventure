@@ -161,12 +161,16 @@ const UI = (() => {
     el2.innerHTML = `<div class="rt">${Math.max(0, t).toFixed(1)}s</div><div class="rc">CHECKPOINT ${Math.min(cp, n - 1)}/${n - 1}</div>`;
     el2.classList.toggle('low', t < 8);
   }
-  function bossBar(show, frac, shielded, whistle) {
+  function bossBar(show, frac, shielded, whistle, who) {
     const b = $('bossbar');
     b.classList.toggle('hidden', !show);
     if (!show || frac === undefined) return;
+    const roby = who === 'roby';
+    $('bossname').textContent = roby ? 'ROBY MINK, LORD OF THE UPVOTES' : 'SHIVE, THE HYPERPOP WIZARD';
     $('bossfill').style.width = Math.max(0, frac * 100) + '%';
-    $('bossstate').textContent = shielded ? (whistle ? 'DIAMOND DRIP SHIELD: press G to blow the Dog Whistle!' : 'DIAMOND DRIP SHIELD: wait for his Bass Drop, then hit him!') : 'VULNERABLE!';
+    const shield = roby ? 'BAN SHIELD' : 'DIAMOND DRIP SHIELD';
+    const opening = roby ? 'wait for his IQ Blast, then hit him!' : 'wait for his Bass Drop, then hit him!';
+    $('bossstate').textContent = shielded ? (whistle ? `${shield}: press G to blow the Dog Whistle!` : `${shield}: ${opening}`) : 'VULNERABLE!';
     $('bossstate').className = shielded ? 'sh' : 'vul';
   }
 
@@ -691,7 +695,7 @@ const UI = (() => {
       ['fox', 'FlowingFox', 'Private Grogan... no. SERGEANT Grogan. Hooah!'],
       ['jack', 'Jack Valentine', 'Dog costumes. E-scooters. Full send. Tomorrow. Be there.'],
       ['eski', 'Eski', 'Bruv you\'re a LEGEND. I\'m putting you in my next track, innit.'],
-      ['roby', 'Roby Mink', 'My thread about you hit the front page of r/LakeNorman. Statistically, you are now a hero.'],
+      ['roby', 'Roby Mink', G.flags.robyEnd ? "I'm sorry I stole your costume. The upvotes went to my head. I've deleted my account. (I made a new one. It's just bug facts now.)" : 'My thread about you hit the front page of r/LakeNorman. Statistically, you are now a hero.'],
       ['squid', 'Squid', 'The crickets are chirping on beat again! Thank you, Eli!'],
       ['rack', 'Rack', 'Rocky Steve says congratulations. He said it with his eyes.'],
       ['sinder', 'Sinder', "Hehehe... I'll be watching you celebrate. From a respectful distance."],
@@ -704,7 +708,8 @@ const UI = (() => {
       row.appendChild(el('div', '', `<b>${name}:</b> ${esc(txt)}`));
       box.appendChild(row);
     }
-    $('ending-fate').textContent = fate;
+    const robyFate = { forgiven: ' You forgave Roby. He now runs a very wholesome bug-facts page with Squid.', bonked: ' You bonked Roby back to reality. He has been banned from his own subreddit.', redeemed: ' Roby burned the Codex of Woof and apologised to Squid in a 4,000-word post. She accepted.' }[G.flags.robyEnd] || '';
+    $('ending-fate').textContent = fate + robyFate;
     $('ending-stats').textContent = `Final level ${G.level} · Quests complete: ${Object.keys(DATA.QUESTS).filter((q) => G.qStage(q) >= 100).length}/${Object.keys(DATA.QUESTS).length} · Places found: ${Object.keys(G.discovered).length}/${WORLD.map.LOCS.length}`;
     $('ending-go').onclick = () => { e.classList.add('hidden'); setPanel(null); G.mode = 'play'; G.save(false); toast('Lake Norman is yours to explore, dog. Finish any leftover quests!', 'quest'); };
   }

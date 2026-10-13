@@ -186,6 +186,8 @@ const SPR = (() => {
       const dc = d.hood;
       rect(g, 11, by(hy - 1), 9, 2, dc); rect(g, 11, by(hy + 1), 3, 7, dc); px(g, 20, by(hy), dc);
       rect(g, 12, by(hy - 3), 2, 2, S(dc, 0.8)); rect(g, 16, by(hy - 3), 2, 2, S(dc, 0.8));
+      // a fedora sits on top of the hood (Roby wearing Eli's costume), ears poking out the sides
+      if (d.hat === 'fedora') { rect(g, 13, by(hy - 4), 6, 3, '#3a3a3a'); rect(g, 10, by(hy - 1), 12, 1, '#2a2a2a'); rect(g, 13, by(hy - 2), 6, 1, '#8a2a2a'); px(g, 11, by(hy - 2), S(dc, 0.8)); px(g, 20, by(hy - 2), S(dc, 0.8)); }
     }
     return outline(g);
   }

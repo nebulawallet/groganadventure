@@ -7,7 +7,7 @@ take down Shive's goons and their Bass Pylons, then cross the lake to Shive's Is
 
 ## What's in it
 - A 200x200 map of Lake Norman: Aldersprings Lane, Mooresville, Davidson & Davidson College, Huntersville & Birkdale Village, Cornelius, Denver, Terrell, Sherrills Ford, Ramsey Creek Park, I-77, Cowans Ford Dam, the Catawba River, Mountain Island Lake and the Dogcore Festival
-- A main story in three acts (the lane, the Bass Pylons and Shive's Spire, then the Dogcore Festival)
+- A main story in three acts (the lane, the Bass Pylons and Shive's Spire, then the Dogcore Festival), plus a final betrayal: Roby Mink steals the costume and becomes Lord Upvote
 - 18 side quests, a branching dialogue system with S.P.E.C.I.A.L. and skill checks, perks, levelling, fast travel from the map (M)
 
 ## How to play
@@ -39,6 +39,7 @@ The game autosaves to your browser.
 - `js/data.js` - items, weapons, perks, enemies, quests, shops
 - `js/dialogues.js` - every character's dialogue tree
 - `js/dialogues2.js` - Act 3 dialogue, the new characters and the second side quests
+- `js/dialogues3.js` - Roby Mink's betrayal and final boss fight
 - `js/game.js` - gameplay, combat, AI, boss fight, saving
 - `js/ui.js` - HUD, dialogue box, menus, minimap and full map
 - `js/audio.js` - chiptune music and sound effects
